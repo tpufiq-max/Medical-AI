@@ -1,0 +1,108 @@
+/* Notifications Component */
+.nt-container {
+  position: relative;
+}
+
+.nt-bell {
+  position: relative;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 8px;
+  color: var(--text-secondary); cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: color 0.2s, background 0.2s;
+}
+
+.nt-bell:hover { color: var(--text-primary); background: var(--surface-hover, rgba(255,255,255,0.07)); }
+
+.nt-badge {
+  position: absolute; top: -4px; right: -4px;
+  min-width: 16px; height: 16px; border-radius: 999px;
+  background: #f43f5e; color: #fff;
+  font-size: 9px; font-weight: 700;
+  display: flex; align-items: center; justify-content: center;
+  padding: 0 4px;
+  animation: ntBadgePop 0.3s ease both;
+}
+
+@keyframes ntBadgePop {
+  from { transform: scale(0); }
+  to { transform: scale(1); }
+}
+
+/* Panel */
+.nt-panel {
+  position: absolute; top: calc(100% + 8px); right: 0;
+  width: 340px; max-height: 420px;
+  background: var(--bg, #0b0e17); border: 1px solid var(--border);
+  border-radius: 16px; box-shadow: 0 12px 40px rgba(0,0,0,0.4);
+  z-index: 1000; overflow: hidden;
+  animation: ntPanelIn 0.2s ease;
+}
+
+@keyframes ntPanelIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.nt-panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 16px 18px; border-bottom: 1px solid var(--border);
+}
+
+.nt-panel-head h3 { font-size: 14px; font-weight: 700; color: var(--text-primary); }
+
+.nt-mark-all {
+  display: flex; align-items: center; gap: 4px;
+  background: none; border: none;
+  color: var(--accent); font-size: 11px; font-weight: 500;
+  cursor: pointer; font-family: inherit;
+}
+
+.nt-mark-all:hover { text-decoration: underline; }
+
+.nt-panel-body {
+  max-height: 340px; overflow-y: auto;
+  scrollbar-width: thin; scrollbar-color: var(--border) transparent;
+}
+
+/* Items */
+.nt-item {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--border);
+  cursor: pointer; transition: background 0.2s;
+}
+
+.nt-item:hover { background: var(--surface); }
+.nt-item:last-child { border-bottom: none; }
+
+.nt-item-unread { background: rgba(79,140,255,0.04); }
+
+.nt-item-icon { flex-shrink: 0; margin-top: 2px; }
+.nt-icon-info { color: #4f8cff; }
+.nt-icon-success { color: #10b981; }
+.nt-icon-warning { color: #f59e0b; }
+
+.nt-item-content { flex: 1; min-width: 0; }
+.nt-item-title { font-size: 12px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+.nt-item-message { font-size: 11px; color: var(--text-secondary); line-height: 1.4; margin-bottom: 4px; }
+.nt-item-time { font-size: 10px; color: var(--text-muted, #5c6080); }
+
+.nt-unread-dot {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 6px var(--accent);
+  flex-shrink: 0; margin-top: 4px;
+}
+
+/* Empty */
+.nt-empty {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 40px 20px; gap: 10px; color: var(--text-secondary);
+}
+
+.nt-empty p { font-size: 13px; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .nt-panel { width: 300px; right: -60px; }
+}

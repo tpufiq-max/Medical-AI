@@ -11,19 +11,44 @@ import Consultations from "./components/Consultations";
 import History from "./components/History";
 import Reports from "./components/Reports";
 import Analytics from "./components/Analytics";
+import Notifications from "./components/Notifications";
 
 import "./App.css";
 
 function App() {
-  const { theme } = useContext(AppContext);         // ← read theme from context
+  const { theme } = useContext(AppContext);
   const [page, setPage] = useState("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const handlePageChange = (newPage) => {
+    setPage(newPage);
+    setSidebarOpen(false);
+  };
 
   return (
-    // ← add `theme` class here so ALL children get CSS variables
     <div className={`app-root ${theme}`}>
-      <Sidebar setPage={setPage} active={page} />
+      {/* Mobile overlay */}
+      {sidebarOpen && <div className="sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
+
+      <div className={`sidebar-wrapper ${sidebarOpen ? "sidebar-mobile-open" : ""}`}>
+        <Sidebar setPage={handlePageChange} active={page} />
+      </div>
 
       <div className="main">
+        {/* Top bar with hamburger + notifications */}
+        <div className="app-topbar">
+          <button className="mobile-menu-btn" onClick={() => setSidebarOpen(!sidebarOpen)}>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <line x1="3" y1="6" x2="21" y2="6" />
+              <line x1="3" y1="12" x2="21" y2="12" />
+              <line x1="3" y1="18" x2="21" y2="18" />
+            </svg>
+          </button>
+          <div className="topbar-right">
+            <Notifications />
+          </div>
+        </div>
+
         {page === "dashboard"     && <Dashboard />}
         {page === "search"        && <Search />}
         {page === "chatbot"       && <Chatbot />}

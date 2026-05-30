@@ -1,0 +1,192 @@
+/* Consultations Page */
+.cs-page {
+  min-height: 100vh;
+  padding: 0;
+  animation: fadeUp 0.4s ease both;
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cs-header {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  margin-bottom: 28px;
+}
+
+.cs-title {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(1.4rem, 2.5vw, 1.8rem); font-weight: 800;
+  color: var(--text-primary); line-height: 1.1;
+}
+
+.cs-subtitle { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+
+.cs-count {
+  font-size: 12px; color: var(--text-secondary);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 999px; padding: 4px 12px;
+}
+
+/* Toolbar */
+.cs-toolbar {
+  display: flex; gap: 12px; margin-bottom: 24px; flex-wrap: wrap;
+}
+
+.cs-search-wrap {
+  flex: 1; min-width: 200px; position: relative;
+}
+
+.cs-search-icon {
+  position: absolute; left: 14px; top: 50%; transform: translateY(-50%);
+  color: var(--text-secondary);
+}
+
+.cs-search-input {
+  width: 100%; padding: 12px 14px 12px 40px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; color: var(--text-primary);
+  font-size: 13px; font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.cs-search-input:focus { outline: none; border-color: var(--accent); }
+
+.cs-filter-wrap {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; padding: 0 14px;
+  color: var(--text-secondary);
+}
+
+.cs-filter-select {
+  background: transparent; border: none; color: var(--text-primary);
+  font-size: 13px; font-family: inherit; padding: 12px 0; cursor: pointer;
+}
+
+.cs-filter-select:focus { outline: none; }
+
+/* Timeline */
+.cs-timeline {
+  display: flex; flex-direction: column; gap: 12px;
+  border-left: 2px solid var(--border);
+  padding-left: 20px; margin-left: 8px;
+}
+
+/* Cards */
+.cs-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  transition: transform 0.2s, border-color 0.2s;
+  animation: fadeUp 0.4s ease both;
+}
+
+.cs-card:hover { transform: translateX(4px); border-color: rgba(79,140,255,0.2); }
+.cs-card-expanded { border-color: rgba(79,140,255,0.3); }
+
+.cs-card-main {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 18px 20px; cursor: pointer;
+}
+
+.cs-card-left { display: flex; align-items: flex-start; gap: 14px; flex: 1; }
+
+.cs-timeline-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--accent); box-shadow: 0 0 8px var(--accent);
+  margin-top: 6px; flex-shrink: 0;
+  position: relative; left: -29px; margin-right: -10px;
+}
+
+.cs-card-content { flex: 1; }
+.cs-card-top { display: flex; align-items: center; gap: 12px; margin-bottom: 6px; flex-wrap: wrap; }
+
+.cs-type-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+  padding: 3px 10px; border-radius: 999px; text-transform: uppercase;
+}
+
+.cs-type-chat { background: rgba(16,185,129,0.15); color: #10b981; }
+.cs-type-search { background: rgba(79,140,255,0.15); color: #4f8cff; }
+.cs-type-interaction { background: rgba(245,158,11,0.15); color: #f59e0b; }
+
+.cs-card-date { font-size: 11px; color: var(--text-secondary); }
+.cs-card-query { font-size: 14px; color: var(--text-primary); line-height: 1.4; }
+.cs-card-diag { font-size: 12px; color: var(--accent); margin-top: 4px; }
+
+.cs-expand-btn {
+  background: none; border: none; color: var(--text-secondary);
+  cursor: pointer; padding: 6px; border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.cs-expand-btn:hover { background: var(--surface); }
+
+/* Expanded detail */
+.cs-card-detail {
+  border-top: 1px solid var(--border);
+  padding: 18px 20px;
+  animation: fadeDown 0.3s ease both;
+}
+
+@keyframes fadeDown {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.cs-detail-section { margin-bottom: 14px; }
+.cs-detail-section:last-child { margin-bottom: 0; }
+.cs-detail-section h4 { font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+.cs-detail-section p { font-size: 13px; color: var(--text-secondary); line-height: 1.5; white-space: pre-wrap; }
+
+.cs-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.cs-tag { font-size: 11px; background: rgba(79,140,255,0.1); color: var(--accent); padding: 3px 10px; border-radius: 999px; }
+
+.cs-rec-list { padding-left: 16px; font-size: 13px; color: var(--text-secondary); line-height: 1.8; }
+
+/* Empty */
+.cs-empty {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 60px 20px; text-align: center;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+.cs-empty-icon { font-size: 48px; margin-bottom: 16px; }
+.cs-empty h3 { font-size: 16px; color: var(--text-primary); margin-bottom: 8px; }
+.cs-empty p { font-size: 13px; color: var(--text-secondary); max-width: 400px; }
+
+/* Skeleton */
+.cs-skeleton-grid { display: flex; flex-direction: column; gap: 12px; }
+
+.cs-skeleton-card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 20px;
+  animation: skeletonPulse 1.5s ease-in-out infinite;
+}
+
+@keyframes skeletonPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.5; }
+}
+
+.cs-skeleton-line {
+  height: 12px; border-radius: 6px;
+  background: var(--border); margin-bottom: 10px;
+}
+
+.cs-skeleton-short { width: 30%; }
+.cs-skeleton-medium { width: 60%; }
+.cs-skeleton-long { width: 90%; }
+
+/* Responsive */
+@media (max-width: 768px) {
+  .cs-header { flex-direction: column; align-items: flex-start; gap: 8px; }
+  .cs-toolbar { flex-direction: column; }
+  .cs-timeline { padding-left: 14px; margin-left: 4px; }
+  .cs-card-main { padding: 14px 16px; }
+  .cs-card-top { flex-direction: column; align-items: flex-start; gap: 4px; }
+}

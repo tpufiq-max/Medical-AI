@@ -1,0 +1,209 @@
+/* Medical History Page */
+.mh-page {
+  min-height: 100vh;
+  animation: mhFadeUp 0.4s ease both;
+}
+
+@keyframes mhFadeUp {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.mh-header {
+  display: flex; align-items: flex-end; justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.mh-title {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(1.4rem, 2.5vw, 1.8rem); font-weight: 800;
+  color: var(--text-primary);
+}
+
+.mh-subtitle { font-size: 13px; color: var(--text-secondary); margin-top: 4px; }
+
+.mh-add-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--accent); color: #fff;
+  border: none; border-radius: 12px; padding: 10px 18px;
+  font-size: 13px; font-weight: 600; cursor: pointer;
+  font-family: inherit; transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.mh-add-btn:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(79,140,255,0.3); }
+
+/* Tabs */
+.mh-tabs {
+  display: flex; gap: 6px; margin-bottom: 20px; flex-wrap: wrap;
+  border-bottom: 1px solid var(--border); padding-bottom: 12px;
+}
+
+.mh-tab {
+  display: flex; align-items: center; gap: 6px;
+  background: transparent; border: 1px solid var(--border);
+  border-radius: 10px; padding: 8px 14px;
+  color: var(--text-secondary); font-size: 12px; font-weight: 500;
+  cursor: pointer; font-family: inherit; transition: all 0.2s;
+}
+
+.mh-tab:hover { background: var(--surface); color: var(--text-primary); }
+.mh-tab-active { background: rgba(79,140,255,0.12); color: var(--accent); border-color: rgba(79,140,255,0.3); }
+
+/* Search */
+.mh-search-wrap { position: relative; margin-bottom: 24px; }
+.mh-search-icon { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: var(--text-secondary); }
+
+.mh-search-input {
+  width: 100%; padding: 12px 14px 12px 40px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 12px; color: var(--text-primary);
+  font-size: 13px; font-family: inherit;
+}
+
+.mh-search-input:focus { outline: none; border-color: var(--accent); }
+
+/* Grid */
+.mh-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 14px;
+}
+
+/* Cards */
+.mh-card {
+  position: relative;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 16px; padding: 20px;
+  backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+  transition: transform 0.2s, border-color 0.2s;
+  animation: mhFadeUp 0.4s ease both;
+}
+
+.mh-card:hover { transform: translateY(-3px); border-color: rgba(79,140,255,0.2); }
+
+.mh-card-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+
+.mh-type-badge {
+  font-size: 10px; font-weight: 600; letter-spacing: 0.05em;
+  padding: 3px 10px; border-radius: 999px; text-transform: uppercase;
+}
+
+.mh-type-blue { background: rgba(79,140,255,0.15); color: #4f8cff; }
+.mh-type-green { background: rgba(16,185,129,0.15); color: #10b981; }
+.mh-type-amber { background: rgba(245,158,11,0.15); color: #f59e0b; }
+.mh-type-rose { background: rgba(244,63,94,0.15); color: #f43f5e; }
+
+.mh-card-date { font-size: 11px; color: var(--text-secondary); }
+.mh-card-title { font-size: 15px; font-weight: 600; color: var(--text-primary); margin-bottom: 6px; }
+.mh-card-content { font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 10px; }
+
+.mh-card-tags { display: flex; gap: 6px; flex-wrap: wrap; }
+.mh-tag { font-size: 10px; background: rgba(79,140,255,0.1); color: var(--accent); padding: 2px 8px; border-radius: 999px; }
+
+.mh-delete-btn {
+  position: absolute; top: 16px; right: 16px;
+  background: none; border: none; color: var(--text-secondary);
+  cursor: pointer; padding: 6px; border-radius: 8px;
+  transition: color 0.2s, background 0.2s;
+}
+
+.mh-delete-btn:hover { color: #f43f5e; background: rgba(244,63,94,0.1); }
+
+/* Empty */
+.mh-empty {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 60px 20px; text-align: center;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 20px;
+}
+
+.mh-empty-icon { font-size: 48px; margin-bottom: 16px; }
+.mh-empty h3 { font-size: 16px; color: var(--text-primary); margin-bottom: 8px; }
+.mh-empty p { font-size: 13px; color: var(--text-secondary); max-width: 400px; }
+
+/* Modal */
+.mh-modal-overlay {
+  position: fixed; inset: 0; background: rgba(0,0,0,0.6);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 1000; backdrop-filter: blur(4px);
+  animation: modalFadeIn 0.2s ease;
+}
+
+@keyframes modalFadeIn { from { opacity: 0; } to { opacity: 1; } }
+
+.mh-modal {
+  background: var(--bg, #0b0e17); border: 1px solid var(--border);
+  border-radius: 20px; width: 90%; max-width: 500px;
+  animation: modalSlideUp 0.3s ease;
+}
+
+.mh-modal-sm { max-width: 380px; }
+
+@keyframes modalSlideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.mh-modal-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 20px 24px; border-bottom: 1px solid var(--border);
+}
+
+.mh-modal-head h2 { font-size: 16px; font-weight: 700; color: var(--text-primary); }
+
+.mh-modal-close {
+  background: none; border: none; color: var(--text-secondary);
+  cursor: pointer; padding: 4px;
+}
+
+.mh-modal-body { padding: 20px 24px; }
+.mh-modal-body p { font-size: 14px; color: var(--text-secondary); line-height: 1.5; }
+
+.mh-field { margin-bottom: 16px; }
+.mh-field label { display: block; font-size: 12px; font-weight: 600; color: var(--text-secondary); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.05em; }
+
+.mh-field input,
+.mh-field select,
+.mh-field textarea {
+  width: 100%; padding: 10px 14px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; color: var(--text-primary);
+  font-size: 13px; font-family: inherit;
+}
+
+.mh-field input:focus,
+.mh-field select:focus,
+.mh-field textarea:focus { outline: none; border-color: var(--accent); }
+
+.mh-field textarea { resize: vertical; min-height: 100px; }
+
+.mh-modal-footer {
+  display: flex; gap: 10px; justify-content: flex-end;
+  padding: 16px 24px; border-top: 1px solid var(--border);
+}
+
+.mh-btn-cancel {
+  background: var(--surface); border: 1px solid var(--border);
+  color: var(--text-primary); border-radius: 10px;
+  padding: 10px 20px; font-size: 13px; font-weight: 500;
+  cursor: pointer; font-family: inherit;
+}
+
+.mh-btn-save {
+  background: var(--accent); border: none; color: #fff;
+  border-radius: 10px; padding: 10px 20px;
+  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+
+.mh-btn-delete {
+  background: #f43f5e; border: none; color: #fff;
+  border-radius: 10px; padding: 10px 20px;
+  font-size: 13px; font-weight: 600; cursor: pointer; font-family: inherit;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .mh-header { flex-direction: column; align-items: flex-start; gap: 12px; }
+  .mh-tabs { overflow-x: auto; flex-wrap: nowrap; padding-bottom: 8px; }
+  .mh-grid { grid-template-columns: 1fr; }
+  .mh-modal { width: 95%; }
+}

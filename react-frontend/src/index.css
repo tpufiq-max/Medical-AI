@@ -438,3 +438,224 @@ html, body, #root {
   background: var(--surface) !important;
   border: 1px solid var(--border) !important;
 }
+
+/* ═══════════════════════════════════════════════════════
+   NEW COMPONENTS — LIGHT MODE OVERRIDES
+   ═══════════════════════════════════════════════════════ */
+
+/* Top Bar */
+.app-root.light .app-topbar {
+  color: var(--text-primary);
+}
+
+.app-root.light .mobile-menu-btn {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+/* Consultations */
+.app-root.light .cs-card,
+.app-root.light .cs-empty {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.app-root.light .cs-search-input,
+.app-root.light .cs-filter-wrap {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.app-root.light .cs-filter-select {
+  color: var(--text-primary);
+}
+
+.app-root.light .cs-card-detail {
+  border-top-color: var(--border);
+}
+
+.app-root.light .cs-title,
+.app-root.light .cs-card-query {
+  color: var(--text-primary);
+}
+
+.app-root.light .cs-timeline {
+  border-left-color: var(--border);
+}
+
+/* Medical History */
+.app-root.light .mh-card,
+.app-root.light .mh-empty {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.app-root.light .mh-search-input {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.app-root.light .mh-tab {
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.app-root.light .mh-tab-active {
+  background: rgba(79,140,255,0.1);
+  color: var(--accent);
+  border-color: rgba(79,140,255,0.3);
+}
+
+.app-root.light .mh-modal {
+  background: #fff;
+  border: 1px solid var(--border);
+}
+
+.app-root.light .mh-field input,
+.app-root.light .mh-field select,
+.app-root.light .mh-field textarea {
+  background: var(--input-bg);
+  color: var(--input-color);
+  border: 1px solid var(--border);
+}
+
+.app-root.light .mh-card-title,
+.app-root.light .mh-title,
+.app-root.light .mh-modal-head h2 {
+  color: var(--text-primary);
+}
+
+/* Reports */
+.app-root.light .rp-card,
+.app-root.light .rp-empty {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.app-root.light .rp-card-title,
+.app-root.light .rp-title {
+  color: var(--text-primary);
+}
+
+.app-root.light .rp-detail-content {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.app-root.light .rp-btn-icon {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.app-root.light .rp-card-icon {
+  background: rgba(79,140,255,0.08);
+  border: 1px solid rgba(79,140,255,0.15);
+}
+
+/* Analytics */
+.app-root.light .an-stat-card,
+.app-root.light .an-chart-card {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.app-root.light .an-title,
+.app-root.light .an-chart-title,
+.app-root.light .an-stat-value {
+  color: var(--text-primary);
+}
+
+.app-root.light .an-date-select select {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+.app-root.light .an-tooltip {
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.app-root.light .an-tooltip-label {
+  color: var(--text-primary);
+}
+
+/* Notifications */
+.app-root.light .nt-bell {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  color: var(--text-secondary);
+}
+
+.app-root.light .nt-panel {
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.1);
+}
+
+.app-root.light .nt-panel-head {
+  border-bottom-color: var(--border);
+}
+
+.app-root.light .nt-panel-head h3 {
+  color: var(--text-primary);
+}
+
+.app-root.light .nt-item {
+  border-bottom-color: var(--border);
+}
+
+.app-root.light .nt-item:hover {
+  background: var(--surface);
+}
+
+.app-root.light .nt-item-title {
+  color: var(--text-primary);
+}
+
+.app-root.light .nt-item-message {
+  color: var(--text-secondary);
+}
+
+/* Dashboard new sections */
+.app-root.light .db-recent-section,
+.app-root.light .db-recent-card {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.app-root.light .db-action-btn {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+}
+
+.app-root.light .db-action-btn:hover {
+  background: rgba(79,140,255,0.08);
+  border-color: rgba(79,140,255,0.2);
+}
+
+.app-root.light .db-recent-query {
+  color: var(--text-primary);
+}
+
+.app-root.light .chart-tooltip {
+  background: #fff;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+}
+
+.app-root.light .tooltip-label {
+  color: var(--text-primary);
+}
