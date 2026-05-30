@@ -1,9 +1,11 @@
-import { useState } from "react";
+import { useState, useContext } from "react";
+import { AppContext } from "../context";
 import "./Interaction.css";
 
 const API = "http://localhost:5001";
 
 export default function Interaction() {
+  const { ConsultationService, ActivityLogService } = useContext(AppContext);
   const [drug1, setDrug1]   = useState("");
   const [drug2, setDrug2]   = useState("");
   const [file1, setFile1]   = useState(null);
@@ -64,6 +66,11 @@ export default function Interaction() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Server error");
       setResult(data);
+      // Save consultation and log activity
+      try {
+        ConsultationService.save({ type: 'interaction', query: `${drug1.trim()} + ${drug2.trim()}`, response: data, diagnosis: data.severity || '' });
+        ActivityLogService.log('interaction_check', `Checked: ${drug1.trim()} vs ${drug2.trim()}`, 'interaction');
+      } catch {}
     } catch (e) {
       setError(e.message || "Server error. Please check your connection and try again.");
     } finally {

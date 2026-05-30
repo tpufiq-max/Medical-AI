@@ -4,20 +4,35 @@ export const t = {
     search: "Search Medicine",
     chatbot: "AI Chatbot",
     interaction: "Drug Interaction",
-    settings: "Settings"
+    settings: "Settings",
+    consultations: "Consultations",
+    history: "Medical History",
+    reports: "Reports",
+    analytics: "Analytics",
+    notifications: "Notifications",
   },
   hi: {
     dashboard: "डैशबोर्ड",
     search: "दवा खोजें",
     chatbot: "चैटबॉट",
     interaction: "दवा इंटरैक्शन",
-    settings: "सेटिंग्स"
+    settings: "सेटिंग्स",
+    consultations: "परामर्श",
+    history: "चिकित्सा इतिहास",
+    reports: "रिपोर्ट",
+    analytics: "विश्लेषण",
+    notifications: "सूचनाएं",
   },
   kn: {
     dashboard: "ಡ್ಯಾಶ್‌ಬೋರ್ಡ್",
     search: "ಔಷಧ ಹುಡುಕಿ",
     chatbot: "ಚಾಟ್‌ಬಾಟ್",
     interaction: "ಔಷಧ ಸಂವಹನ",
-    settings: "ಸೆಟ್ಟಿಂಗ್ಸ್"
+    settings: "ಸೆಟ್ಟಿಂಗ್ಸ್",
+    consultations: "ಸಮಾಲೋಚನೆಗಳು",
+    history: "ವೈದ್ಯಕೀಯ ಇತಿಹಾಸ",
+    reports: "ವರದಿಗಳು",
+    analytics: "ವಿಶ್ಲೇಷಣೆ",
+    notifications: "ಅಧಿಸೂಚನೆಗಳು",
   }
 };

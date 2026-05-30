@@ -4,12 +4,35 @@ import { t } from "../translations";
 import "./Sidebar.css";
 
 const icons = {
-  dashboard:   { svg: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10", label: "D" },
-  search:      { svg: "M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z", label: "S" },
-  chatbot:     { svg: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z", label: "C" },
-  interaction: { svg: "M22 12h-4l-3 9L9 3l-3 9H2", label: "I" },
-  settings:    { svg: "M12 15a3 3 0 100-6 3 3 0 000 6z M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z", label: "⚙" },
+  dashboard:     { svg: "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10" },
+  consultations: { svg: "M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2 M9 5a2 2 0 012-2h2a2 2 0 012 2 M9 5h6 M9 14h6 M9 18h6 M9 10h6" },
+  search:        { svg: "M21 21l-4.35-4.35M17 11A6 6 0 115 11a6 6 0 0112 0z" },
+  chatbot:       { svg: "M21 15a2 2 0 01-2 2H7l-4 4V5a2 2 0 012-2h14a2 2 0 012 2z" },
+  interaction:   { svg: "M22 12h-4l-3 9L9 3l-3 9H2" },
+  history:       { svg: "M12 8v4l3 3 M3.05 11a9 9 0 1118 2 M3.05 11l-2 2 M3.05 11l2 2" },
+  reports:       { svg: "M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z M14 2v6h6 M16 13H8 M16 17H8 M10 9H8" },
+  analytics:     { svg: "M18 20V10 M12 20V4 M6 20v-6" },
+  settings:      { svg: "M12 15a3 3 0 100-6 3 3 0 000 6z M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06A1.65 1.65 0 0019.4 9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z" },
 };
+
+const sections = [
+  {
+    label: "MAIN",
+    items: ["dashboard", "consultations"],
+  },
+  {
+    label: "TOOLS",
+    items: ["search", "chatbot", "interaction"],
+  },
+  {
+    label: "RECORDS",
+    items: ["history", "reports", "analytics"],
+  },
+  {
+    label: "SYSTEM",
+    items: ["settings"],
+  },
+];
 
 function NavIcon({ paths }) {
   return (
@@ -23,8 +46,6 @@ function NavIcon({ paths }) {
 
 function Sidebar({ setPage, active }) {
   const { lang } = useContext(AppContext);
-
-  const items = ["dashboard", "search", "chatbot", "interaction", "settings"];
 
   return (
     <aside className="sidebar">
@@ -42,27 +63,29 @@ function Sidebar({ setPage, active }) {
       {/* Divider */}
       <div className="sidebar-divider" />
 
-      {/* Nav label */}
-      <p className="nav-section-label">NAVIGATION</p>
-
-      {/* Nav items */}
+      {/* Nav sections */}
       <nav className="sidebar-nav">
-        <ul>
-          {items.map((item, i) => (
-            <li
-              key={item}
-              className={`nav-item ${active === item ? "active" : ""}`}
-              onClick={() => setPage(item)}
-              style={{ "--i": i }}
-            >
-              <span className="nav-icon">
-                <NavIcon paths={icons[item].svg} />
-              </span>
-              <span className="nav-label">{t[lang][item]}</span>
-              {active === item && <span className="nav-pip" />}
-            </li>
-          ))}
-        </ul>
+        {sections.map((section) => (
+          <div key={section.label}>
+            <p className="nav-section-label">{section.label}</p>
+            <ul>
+              {section.items.map((item, i) => (
+                <li
+                  key={item}
+                  className={`nav-item ${active === item ? "active" : ""}`}
+                  onClick={() => setPage(item)}
+                  style={{ "--i": i }}
+                >
+                  <span className="nav-icon">
+                    <NavIcon paths={icons[item].svg} />
+                  </span>
+                  <span className="nav-label">{t[lang][item] || item}</span>
+                  {active === item && <span className="nav-pip" />}
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
       </nav>
 
       {/* Footer */}
