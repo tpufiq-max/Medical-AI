@@ -21,13 +21,20 @@ function NavIcon({ paths }) {
   );
 }
 
-function Sidebar({ setPage, active }) {
+function Sidebar({ setPage, active, open = false, onClose }) {
   const { lang } = useContext(AppContext);
 
   const items = ["dashboard", "search", "chatbot", "interaction", "settings"];
 
+  const handleKey = (e, item) => {
+    if (e.key === "Enter" || e.key === " ") {
+      e.preventDefault();
+      setPage(item);
+    }
+  };
+
   return (
-    <aside className="sidebar">
+    <aside className={`sidebar ${open ? "sidebar--open" : ""}`} aria-label="Primary navigation">
       {/* Brand */}
       <div className="sidebar-brand">
         <div className="brand-mark">
@@ -37,6 +44,13 @@ function Sidebar({ setPage, active }) {
           <span className="brand-name">MedAI</span>
           <span className="brand-tagline">Health Intelligence</span>
         </div>
+
+        {/* Mobile close button */}
+        <button className="sidebar-close" onClick={onClose} aria-label="Close navigation menu">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18" /><line x1="6" y1="6" x2="18" y2="18" />
+          </svg>
+        </button>
       </div>
 
       {/* Divider */}
@@ -53,7 +67,11 @@ function Sidebar({ setPage, active }) {
               key={item}
               className={`nav-item ${active === item ? "active" : ""}`}
               onClick={() => setPage(item)}
+              onKeyDown={(e) => handleKey(e, item)}
               style={{ "--i": i }}
+              role="button"
+              tabIndex={0}
+              aria-current={active === item ? "page" : undefined}
             >
               <span className="nav-icon">
                 <NavIcon paths={icons[item].svg} />

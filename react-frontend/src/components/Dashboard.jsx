@@ -184,7 +184,7 @@ export default function Dashboard() {
 
           <ResponsiveContainer width="100%" height={220}>
             <LineChart data={history} margin={{ top: 8, right: 8, left: -20, bottom: 0 }}>
-              <CartesianGrid stroke="rgba(255,255,255,0.05)" vertical={false} />
+              <CartesianGrid stroke="rgba(130,140,170,0.18)" vertical={false} />
               <XAxis
                 dataKey="type"
                 tick={{ fill: "#5c6080", fontSize: 11 }}
