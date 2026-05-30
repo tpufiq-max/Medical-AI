@@ -1,0 +1,351 @@
+/* ─── Google Font ─────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap');
+
+/* ─── Tokens ──────────────────────────────────────────────── */
+.settings-page.dark {
+  --bg: #0d0d12;
+  --surface: rgba(255, 255, 255, 0.04);
+  --surface-hover: rgba(255, 255, 255, 0.08);
+  --border: rgba(255, 255, 255, 0.08);
+  --text-primary: #f0eeff;
+  --text-secondary: #8b8aa0;
+  --accent: #7c6df0;
+  --accent-glow: rgba(124, 109, 240, 0.35);
+  --toggle-off: rgba(255,255,255,0.12);
+  --blob-1: #3b1fa8;
+  --blob-2: #0f3b6e;
+}
+
+.settings-page.light {
+  --bg: #f4f3ff;
+  --surface: rgba(255, 255, 255, 0.75);
+  --surface-hover: rgba(255, 255, 255, 0.95);
+  --border: rgba(100, 90, 200, 0.12);
+  --text-primary: #1a1830;
+  --text-secondary: #6b6880;
+  --accent: #5b4ae8;
+  --accent-glow: rgba(91, 74, 232, 0.2);
+  --toggle-off: #d0cfe8;
+  --blob-1: #c5b8ff;
+  --blob-2: #a8d4ff;
+}
+
+/* ─── Base ────────────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+.settings-page {
+  font-family: 'DM Sans', sans-serif;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--text-primary);
+  position: relative;
+  overflow: hidden;
+  transition: background 0.4s ease, color 0.4s ease;
+}
+
+/* ─── Background blobs ───────────────────────────────────── */
+.settings-bg {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(90px);
+  opacity: 0.45;
+  animation: float 10s ease-in-out infinite alternate;
+}
+
+.blob-1 {
+  width: 420px; height: 420px;
+  background: var(--blob-1);
+  top: -100px; left: -80px;
+  animation-delay: 0s;
+}
+
+.blob-2 {
+  width: 340px; height: 340px;
+  background: var(--blob-2);
+  bottom: -80px; right: -60px;
+  animation-delay: -5s;
+}
+
+@keyframes float {
+  from { transform: translate(0, 0) scale(1); }
+  to   { transform: translate(30px, 20px) scale(1.08); }
+}
+
+.grain {
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.5;
+}
+
+/* ─── Layout ─────────────────────────────────────────────── */
+.settings-inner {
+  position: relative;
+  z-index: 1;
+  max-width: 480px;
+  margin: 0 auto;
+  padding: 56px 24px 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* ─── Header ─────────────────────────────────────────────── */
+.settings-header {
+  margin-bottom: 12px;
+  animation: slideDown 0.5s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+@keyframes slideDown {
+  from { opacity: 0; transform: translateY(-18px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.header-badge {
+  display: inline-block;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  color: var(--accent);
+  background: var(--accent-glow);
+  border: 1px solid var(--accent);
+  border-radius: 999px;
+  padding: 3px 12px;
+  margin-bottom: 12px;
+  opacity: 0.9;
+}
+
+.settings-title {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(2rem, 6vw, 2.6rem);
+  font-weight: 800;
+  line-height: 1.1;
+  background: linear-gradient(135deg, var(--text-primary) 40%, var(--accent));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.settings-sub {
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--text-secondary);
+  font-weight: 400;
+}
+
+/* ─── Card ───────────────────────────────────────────────── */
+.settings-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 22px 24px;
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  animation: fadeUp 0.5s cubic-bezier(0.22, 1, 0.36, 1) var(--delay, 0s) both;
+  transition: background 0.25s ease, box-shadow 0.25s ease, transform 0.25s ease;
+}
+
+.settings-card:hover {
+  background: var(--surface-hover);
+  box-shadow: 0 8px 40px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── Card label row ─────────────────────────────────────── */
+.card-label {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.card-icon {
+  width: 42px; height: 42px;
+  border-radius: 12px;
+  background: var(--accent-glow);
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  flex-shrink: 0;
+  transition: transform 0.3s ease;
+}
+
+.settings-card:hover .card-icon {
+  transform: rotate(-6deg) scale(1.05);
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.card-hint {
+  font-size: 12px;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+/* ─── Toggle ─────────────────────────────────────────────── */
+.toggle-track {
+  align-self: flex-end;
+  width: 60px; height: 32px;
+  border-radius: 999px;
+  background: var(--toggle-off);
+  border: none;
+  cursor: pointer;
+  position: relative;
+  transition: background 0.35s cubic-bezier(0.4, 0, 0.2, 1),
+              box-shadow 0.35s ease;
+  outline: none;
+  flex-shrink: 0;
+}
+
+.toggle-track.on {
+  background: var(--accent);
+  box-shadow: 0 0 18px var(--accent-glow);
+}
+
+.toggle-thumb {
+  position: absolute;
+  top: 4px; left: 4px;
+  width: 24px; height: 24px;
+  border-radius: 50%;
+  background: white;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1),
+              box-shadow 0.25s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+.toggle-track.on .toggle-thumb {
+  transform: translateX(28px);
+}
+
+.toggle-track:hover .toggle-thumb {
+  box-shadow: 0 2px 12px rgba(0,0,0,0.3);
+}
+
+/* ─── Language grid ──────────────────────────────────────── */
+.lang-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.lang-btn {
+  position: relative;
+  overflow: hidden;
+  border: 1.5px solid var(--border);
+  border-radius: 14px;
+  background: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  padding: 14px 8px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  transition: border-color 0.25s ease,
+              background 0.25s ease,
+              color 0.25s ease,
+              transform 0.2s ease,
+              box-shadow 0.25s ease;
+  outline: none;
+}
+
+.lang-btn:hover {
+  background: var(--surface-hover);
+  border-color: var(--accent);
+  color: var(--text-primary);
+  transform: translateY(-2px);
+}
+
+.lang-btn.active {
+  border-color: var(--accent);
+  background: var(--accent-glow);
+  color: var(--text-primary);
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.lang-sub {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  color: var(--accent);
+  opacity: 0.75;
+}
+
+.lang-btn.active .lang-sub { opacity: 1; }
+
+.lang-label {
+  font-size: 15px;
+  font-weight: 500;
+}
+
+.lang-check {
+  position: absolute;
+  top: 8px; right: 10px;
+  font-size: 11px;
+  color: var(--accent);
+  animation: popIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.5); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ─── Ripple ─────────────────────────────────────────────── */
+.ripple {
+  position: absolute;
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.4;
+  transform: translate(-50%, -50%) scale(0);
+  pointer-events: none;
+  animation: rippleOut 0.5s ease-out forwards;
+}
+
+@keyframes rippleOut {
+  to { transform: translate(-50%, -50%) scale(14); opacity: 0; }
+}
+
+/* ─── Footer ─────────────────────────────────────────────── */
+.settings-footer {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: center;
+  font-size: 11px;
+  color: var(--text-secondary);
+  opacity: 0.6;
+  padding-top: 8px;
+  animation: fadeUp 0.5s ease 0.35s both;
+}
+
+.dot {
+  width: 3px; height: 3px;
+  border-radius: 50%;
+  background: currentColor;
+}

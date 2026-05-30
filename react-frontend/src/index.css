@@ -1,0 +1,440 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=Syne:wght@700;800&display=swap');
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html, body, #root {
+  height: 100%;
+  font-family: 'DM Sans', sans-serif;
+}
+
+/* ═══════════════════════════════════════════════════════
+   DARK THEME TOKENS
+   ═══════════════════════════════════════════════════════ */
+.app-root.dark {
+  --bg:             #0b0e17;
+  --surface:        rgba(255, 255, 255, 0.04);
+  --surface-hover:  rgba(255, 255, 255, 0.08);
+  --border:         rgba(255, 255, 255, 0.08);
+  --text-primary:   #eef0ff;
+  --text-secondary: #5c6080;
+  --text-muted:     #353850;
+  --accent:         #4f8cff;
+  --accent-glow:    rgba(79, 140, 255, 0.18);
+  --accent-active:  rgba(79, 140, 255, 0.12);
+  --toggle-off:     rgba(255, 255, 255, 0.12);
+  --blob-1:         #1a3a8f;
+  --blob-2:         #0f3b6e;
+  --status:         #34d399;
+
+  /* legacy class overrides so old CSS still works */
+  --card-bg:        rgba(255, 255, 255, 0.05);
+  --main-bg:        linear-gradient(135deg, #0f172a, #1e3a5f, #1b6ca8);
+  --sidebar-bg:     linear-gradient(180deg, #020617, #0f172a);
+  --input-bg:       rgba(255, 255, 255, 0.08);
+  --input-color:    #eef0ff;
+}
+
+/* ═══════════════════════════════════════════════════════
+   LIGHT THEME TOKENS
+   ═══════════════════════════════════════════════════════ */
+.app-root.light {
+  --bg:             #f0f2ff;
+  --surface:        rgba(255, 255, 255, 0.85);
+  --surface-hover:  rgba(255, 255, 255, 0.97);
+  --border:         rgba(80, 90, 200, 0.13);
+  --text-primary:   #1a1c30;
+  --text-secondary: #6b6f90;
+  --text-muted:     #a0a3c0;
+  --accent:         #4f8cff;
+  --accent-glow:    rgba(79, 140, 255, 0.14);
+  --accent-active:  rgba(79, 140, 255, 0.10);
+  --toggle-off:     #c8cce8;
+  --blob-1:         #b8c8ff;
+  --blob-2:         #a8d4ff;
+  --status:         #10b981;
+
+  --card-bg:        rgba(255, 255, 255, 0.85);
+  --main-bg:        #f0f2ff;
+  --sidebar-bg:     #1e293b;
+  --input-bg:       rgba(255, 255, 255, 0.9);
+  --input-color:    #1a1c30;
+}
+
+/* ═══════════════════════════════════════════════════════
+   ROOT WRAPPER
+   ═══════════════════════════════════════════════════════ */
+.app-root {
+  min-height: 100vh;
+  display: flex;
+  background: var(--bg);
+  color: var(--text-primary);
+  transition: background 0.35s ease, color 0.35s ease;
+}
+
+/* ═══════════════════════════════════════════════════════
+   MAIN CONTENT AREA
+   ═══════════════════════════════════════════════════════ */
+.main {
+  flex: 1;
+  padding: 40px;
+  overflow-y: auto;
+  background: var(--main-bg);
+  color: var(--text-primary);
+  transition: background 0.35s ease, color 0.35s ease;
+}
+
+/* scrollbar */
+.main::-webkit-scrollbar { width: 6px; }
+.main::-webkit-scrollbar-thumb {
+  background: var(--accent);
+  border-radius: 10px;
+}
+
+/* ═══════════════════════════════════════════════════════
+   CARDS — light mode overrides
+   ═══════════════════════════════════════════════════════ */
+.app-root.light .glass-card,
+.app-root.light .upload-card,
+.app-root.light .card,
+.app-root.light .stat-card,
+.app-root.light .activity-card,
+.app-root.light .chart-card,
+.app-root.light .glass,
+.app-root.light .ai-card,
+.app-root.light .premium-card {
+  background: var(--card-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border);
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+/* ═══════════════════════════════════════════════════════
+   INPUTS — light mode overrides
+   ═══════════════════════════════════════════════════════ */
+.app-root.light input,
+.app-root.light select,
+.app-root.light textarea {
+  background: var(--input-bg);
+  color: var(--input-color);
+  border: 1px solid var(--border);
+}
+
+.app-root.light input::placeholder {
+  color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════════════════════
+   TEXT — light mode overrides
+   ═══════════════════════════════════════════════════════ */
+.app-root.light h1,
+.app-root.light h2,
+.app-root.light h3,
+.app-root.light h4,
+.app-root.light p,
+.app-root.light span,
+.app-root.light li {
+  color: var(--text-primary);
+}
+
+.app-root.light .hero p,
+.app-root.light .section-header p,
+.app-root.light .card span,
+.app-root.light .stat-card span {
+  color: var(--text-secondary);
+}
+
+/* ═══════════════════════════════════════════════════════
+   CHATBOT BUBBLES — light mode
+   ═══════════════════════════════════════════════════════ */
+.app-root.light .bot-bubble,
+.app-root.light .bot {
+  background: rgba(79, 140, 255, 0.1);
+  color: var(--text-primary);
+}
+
+.app-root.light .chat-input-bar,
+.app-root.light .chatbox {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid var(--border);
+}
+
+/* ═══════════════════════════════════════════════════════
+   SEARCH / UPLOAD BOXES — light mode
+   ═══════════════════════════════════════════════════════ */
+.app-root.light .search-bar,
+.app-root.light .upload-box,
+.app-root.light .scan-box {
+  background: rgba(255, 255, 255, 0.8);
+  border: 1px solid var(--border);
+  color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════════════════════
+   INTERACTION PAGE — light mode
+   ═══════════════════════════════════════════════════════ */
+.app-root.light .interaction-box,
+.app-root.light .interaction-top {
+  color: var(--text-primary);
+}
+
+/* ═══════════════════════════════════════════════════════
+   DASHBOARD — light mode
+   ═══════════════════════════════════════════════════════ */
+.app-root.light .dashboard,
+.app-root.light .search-page,
+.app-root.light .chat-container {
+  background: var(--bg);
+  color: var(--text-primary);
+}/* ── AI Chat & Result cards — light mode fix ── */
+.app-root.light .ai-card,
+.app-root.light .result-card,
+.app-root.light .premium-card,
+.app-root.light .chat-body,
+.app-root.light .chatbox,
+.app-root.light .chat-container,
+.app-root.light .section,
+.app-root.light .interaction-result,
+.app-root.light .result-container,
+.app-root.light .result-grid .card {
+  background: var(--card-bg) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border);
+}
+
+/* Section headings inside AI cards */
+.app-root.light .section h4,
+.app-root.light .ai-card h3,
+.app-root.light .ai-card p,
+.app-root.light .ai-card li,
+.app-root.light .ai-card span {
+  color: var(--text-primary) !important;
+}
+
+/* Clinical effect / mechanism / advice / monitoring cards */
+.app-root.light [class*="card"],
+.app-root.light [class*="box"],
+.app-root.light [class*="bubble"] {
+  background: var(--card-bg);
+  color: var(--text-primary);
+}/* ── Fix AI card sections in light mode ── */
+.app-root.light .ai-card,
+.app-root.light .ai-card .section,
+.app-root.light .ai-card .section h4,
+.app-root.light .ai-card h3,
+.app-root.light .ai-card p,
+.app-root.light .ai-card li,
+.app-root.light .ai-card span,
+.app-root.light .ai-card ul {
+  background: transparent !important;
+  color: var(--text-primary) !important;
+}
+
+/* The inner section boxes (USES, DOSAGE, SIDE EFFECTS etc.) */
+.app-root.light .section {
+  background: rgba(79, 140, 255, 0.06) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: 10px;
+}
+
+.app-root.light .section h4 {
+  color: var(--accent) !important;
+}
+
+.app-root.light .section p,
+.app-root.light .section li,
+.app-root.light .section span {
+  color: var(--text-primary) !important;
+}
+
+/* Warning box */
+.app-root.light .warning-box {
+  background: rgba(244, 63, 94, 0.08) !important;
+  color: #e11d48 !important;
+  border: 1px solid rgba(244, 63, 94, 0.2) !important;
+}
+
+.app-root.light .warning-box p,
+.app-root.light .warning-box li,
+.app-root.light .warning-box span {
+  color: #e11d48 !important;
+}
+
+/* Chip tags */
+.app-root.light .chip {
+  background: rgba(79, 140, 255, 0.1) !important;
+  color: var(--text-primary) !important;
+}
+
+/* Bot bubble */
+.app-root.light .bot-bubble,
+.app-root.light .bot {
+  background: rgba(79, 140, 255, 0.08) !important;
+  color: var(--text-primary) !important;
+}/* ── Interaction page light mode fix ── */
+.app-root.light .interaction-result,
+.app-root.light .interaction-result *,
+.app-root.light .result-card,
+.app-root.light .result-card *,
+.app-root.light .interaction-box,
+.app-root.light .interaction-box *,
+.app-root.light .interaction-top,
+.app-root.light .interaction-top * {
+  color: var(--text-primary) !important;
+}
+
+/* Info grid cards (Clinical Effect, Mechanism, Advice, Monitoring) */
+.app-root.light .info-grid .card,
+.app-root.light .info-grid .card *,
+.app-root.light .result-grid .card,
+.app-root.light .result-grid .card * {
+  background: var(--card-bg) !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* Section labels like CLINICAL EFFECT, MECHANISM etc */
+.app-root.light .card p,
+.app-root.light .card span,
+.app-root.light .card h3,
+.app-root.light .card h4 {
+  color: var(--text-primary) !important;
+}
+
+/* Severity badge */
+.app-root.light .severity-badge,
+.app-root.light [class*="severity"],
+.app-root.light [class*="risk"] {
+  color: white !important;
+}
+
+/* The dark navy inner boxes */
+.app-root.light [style*="background: #"] ,
+.app-root.light [style*="background:#0"],
+.app-root.light [style*="background: rgb(15"],
+.app-root.light [style*="background: rgba(255,255,255,0.0"] {
+  background: var(--card-bg) !important;
+  color: var(--text-primary) !important;
+}/* ── Interaction component (ia-*) light mode fix ── */
+.app-root.light .ia-result-card,
+.app-root.light .ia-detail-block,
+.app-root.light .ia-details-grid,
+.app-root.light .ia-result-header,
+.app-root.light .ia-interaction-flag {
+  background: var(--card-bg) !important;
+  border: 1px solid var(--border) !important;
+}
+
+/* Fix the --text variable not being defined */
+.app-root.light {
+  --text: var(--text-primary);
+}
+
+.app-root.dark {
+  --text: var(--text-primary);
+}
+
+.app-root.light .ia-detail-value,
+.app-root.light .ia-detail-label,
+.app-root.light .ia-detail-block p,
+.app-root.light .ia-detail-block span,
+.app-root.light .ia-detail-block div {
+  color: var(--text-primary) !important;
+}
+
+.app-root.light .ia-detail-highlight {
+  background: rgba(79, 140, 255, 0.08) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.app-root.light .ia-disclaimer {
+  color: var(--text-secondary) !important;
+}
+
+.app-root.light .ia-divider {
+  border-color: var(--border) !important;
+}/* ── Chatbot cb-* classes light mode fix ── */
+.app-root.light .cb-ai-card {
+  background: white !important;
+  color: var(--text-primary) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.app-root.light .cb-med-block {
+  background: rgba(79, 140, 255, 0.06) !important;
+  border: 1px solid var(--border) !important;
+  color: var(--text-primary) !important;
+}
+
+.app-root.light .cb-med-block-title {
+  color: var(--accent) !important;
+}
+
+.app-root.light .cb-med-block-item,
+.app-root.light .cb-med-block p,
+.app-root.light .cb-med-block span,
+.app-root.light .cb-med-block li {
+  color: var(--text-primary) !important;
+}
+
+.app-root.light .cb-med-block--warn {
+  background: rgba(245, 158, 11, 0.08) !important;
+  border: 1px solid rgba(245, 158, 11, 0.2) !important;
+}
+
+.app-root.light .cb-med-block--warn .cb-med-block-title {
+  color: #d97706 !important;
+}
+
+.app-root.light .cb-med-block--warn .cb-med-block-item {
+  color: #92400e !important;
+}
+
+.app-root.light .cb-med-block--danger {
+  background: rgba(244, 63, 94, 0.06) !important;
+  border: 1px solid rgba(244, 63, 94, 0.2) !important;
+}
+
+.app-root.light .cb-med-block--danger .cb-med-block-title {
+  color: #e11d48 !important;
+}
+
+.app-root.light .cb-med-block--danger .cb-med-block-item {
+  color: #9f1239 !important;
+}
+
+.app-root.light .cb-ai-header,
+.app-root.light .cb-ai-header span,
+.app-root.light .cb-ai-header p {
+  color: var(--text-primary) !important;
+}/* ── Dashboard timeline light mode fix ── */
+.app-root.light .tl-text {
+  color: var(--text-primary) !important;
+}
+
+.app-root.light .card-title {
+  color: var(--text-primary) !important;
+}
+
+.app-root.light .activity-count {
+  color: var(--text-secondary) !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+}
+
+.app-root.light .db-title {
+  background: linear-gradient(135deg, #1a1c30 30%, #4f8cff) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+.app-root.light .db-sub {
+  color: var(--text-secondary) !important;
+}
+
+.app-root.light .db-sync {
+  color: var(--text-secondary) !important;
+  background: var(--surface) !important;
+  border: 1px solid var(--border) !important;
+}
