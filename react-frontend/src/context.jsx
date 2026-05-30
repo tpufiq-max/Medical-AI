@@ -1,4 +1,6 @@
-import { createContext, useState } from "react";
+import { createContext, useState, useCallback } from "react";
+import { ConsultationService, MedicalRecordService, ActivityLogService, AnalyticsService } from "./services/dataService";
+import { NotificationService } from "./services/notificationService";
 
 export const AppContext = createContext();
 
@@ -13,6 +15,11 @@ export function AppProvider({ children }) {
     () => localStorage.getItem("lang") || "en"
   );
 
+  // Notifications state
+  const [notifications, setNotifications] = useState(
+    () => NotificationService.getAll()
+  );
+
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
@@ -24,8 +31,42 @@ export function AppProvider({ children }) {
     localStorage.setItem("lang", code);   // persists on reload
   };
 
+  const addNotification = useCallback((notification) => {
+    const entry = NotificationService.add(notification);
+    setNotifications(NotificationService.getAll());
+    return entry;
+  }, []);
+
+  const markNotificationRead = useCallback((id) => {
+    NotificationService.markRead(id);
+    setNotifications(NotificationService.getAll());
+  }, []);
+
+  const markAllNotificationsRead = useCallback(() => {
+    NotificationService.markAllRead();
+    setNotifications(NotificationService.getAll());
+  }, []);
+
+  const clearNotifications = useCallback(() => {
+    NotificationService.clear();
+    setNotifications([]);
+  }, []);
+
   return (
-    <AppContext.Provider value={{ theme, toggleTheme, lang, setLang }}>
+    <AppContext.Provider value={{
+      theme, toggleTheme,
+      lang, setLang,
+      notifications,
+      addNotification,
+      markNotificationRead,
+      markAllNotificationsRead,
+      clearNotifications,
+      ConsultationService,
+      MedicalRecordService,
+      ActivityLogService,
+      AnalyticsService,
+      NotificationService,
+    }}>
       {children}
     </AppContext.Provider>
   );
