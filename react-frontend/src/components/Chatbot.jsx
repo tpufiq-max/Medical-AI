@@ -1,9 +1,11 @@
-import { useState, useRef, useEffect, useCallback } from "react";
+import { useState, useRef, useEffect, useCallback, useContext } from "react";
+import { AppContext } from "../context";
 import "./chat.css";
 
 const API = "http://localhost:5001";
 
 function Chatbot() {
+  const { ConsultationService, ActivityLogService } = useContext(AppContext);
   const [msg, setMsg]           = useState("");
   const [chat, setChat]         = useState([]);
   const [loading, setLoading]   = useState(false);
@@ -180,6 +182,11 @@ function Chatbot() {
             ]);
             const speech = `${med.name}. Uses: ${Array.isArray(med.uses) ? med.uses.join(", ") : med.uses}.`;
             setTimeout(() => playVoice(speech), 300);
+            // Save consultation and log activity
+            try {
+              ConsultationService.save({ type: 'chat', query: message, response: med, diagnosis: med.name });
+              ActivityLogService.log('chat_medicine', `Medicine info: ${med.name}`, 'chat');
+            } catch {}
           }
 
           else if (event.type === "done") {
@@ -196,6 +203,17 @@ function Chatbot() {
                 if (last?.role === "assistant") playVoice(last.streamedText?.slice(0, 300) || "");
                 return prev;
               });
+              // Save consultation and log activity
+              try {
+                setChat(prev => {
+                  const last = prev[prev.length - 1];
+                  if (last?.role === "assistant") {
+                    ConsultationService.save({ type: 'chat', query: message, response: { text: last.streamedText || last.text || '' } });
+                    ActivityLogService.log('chat_response', `AI response for: ${message}`, 'chat');
+                  }
+                  return prev;
+                });
+              } catch {}
             }
             setStreaming(false);
             abortRef.current = null;
@@ -229,6 +247,11 @@ function Chatbot() {
       setChat(prev => [...prev, { role: "ai", data: med, similar, time: getTime() }]);
       const usesText = Array.isArray(med.uses) ? med.uses.join(", ") : med.uses;
       setTimeout(() => playVoice(`${med.name}. Uses: ${usesText}`), 300);
+      // Save consultation and log activity
+      try {
+        ConsultationService.save({ type: 'chat', query: 'Image scan', response: med, diagnosis: med.name });
+        ActivityLogService.log('chat_image_scan', `Scanned medicine: ${med.name}`, 'chat');
+      } catch {}
     } catch {
       setChat(prev => [...prev, { role: "error", text: "Image scan failed.", time: getTime() }]);
     } finally {

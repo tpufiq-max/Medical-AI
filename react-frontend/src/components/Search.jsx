@@ -1,9 +1,11 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useContext } from "react";
+import { AppContext } from "../context";
 import "./Search.css";
 
 const API = "http://localhost:5001";
 
 export default function Search() {
+  const { ConsultationService, ActivityLogService } = useContext(AppContext);
   const [med, setMed]           = useState("");
   const [data, setData]         = useState(null);
   const [error, setError]       = useState("");
@@ -30,6 +32,12 @@ export default function Search() {
       if (!res.ok || json.error) throw new Error(json.error || "Server error");
       // Backend may return array (DB) or single object (AI)
       setData(Array.isArray(json) ? json[0] : json);
+      // Save consultation and log activity
+      try {
+        const resultData = Array.isArray(json) ? json[0] : json;
+        ConsultationService.save({ type: 'search', query: name, response: resultData, diagnosis: resultData?.name || name });
+        ActivityLogService.log('medicine_search', `Searched: ${name}`, 'search');
+      } catch {}
     } catch (e) {
       setError(e.message || "Unable to fetch medicine details. Please try again.");
     } finally {
