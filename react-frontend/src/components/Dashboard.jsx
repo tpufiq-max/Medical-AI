@@ -79,7 +79,7 @@ function TimelineItem({ item, index }) {
 }
 
 export default function Dashboard() {
-  const { ConsultationService, ActivityLogService, AnalyticsService } = useContext(AppContext);
+  const { ConsultationService, ActivityLogService, AnalyticsService, setPage } = useContext(AppContext);
   const [stats, setStats] = useState(null);
   const [recent, setRecent] = useState([]);
   const [history, setHistory] = useState([]);
@@ -385,16 +385,16 @@ export default function Dashboard() {
       <div className="db-quick-actions">
         <h3 className="card-title">Quick Actions</h3>
         <div className="db-actions-grid">
-          <button className="db-action-btn" onClick={() => {}}>
+          <button className="db-action-btn" onClick={() => setPage('chatbot')}>
             <MessageSquare size={18} /> AI Chat <ArrowRight size={14} />
           </button>
-          <button className="db-action-btn" onClick={() => {}}>
+          <button className="db-action-btn" onClick={() => setPage('search')}>
             <Pill size={18} /> Medicine Search <ArrowRight size={14} />
           </button>
-          <button className="db-action-btn" onClick={() => {}}>
+          <button className="db-action-btn" onClick={() => setPage('interaction')}>
             <AlertTriangle size={18} /> Drug Interaction <ArrowRight size={14} />
           </button>
-          <button className="db-action-btn" onClick={() => {}}>
+          <button className="db-action-btn" onClick={() => setPage('reports')}>
             <FileText size={18} /> View Reports <ArrowRight size={14} />
           </button>
         </div>

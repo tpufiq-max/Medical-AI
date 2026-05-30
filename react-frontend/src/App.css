@@ -1959,6 +1959,28 @@ body {
 .sidebar-wrapper {
   display: flex;
   flex-shrink: 0;
+  position: relative;
+}
+
+.sidebar-close-btn {
+  display: none;
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  z-index: 101;
+  background: rgba(255,255,255,0.1);
+  border: none;
+  border-radius: 6px;
+  color: white;
+  width: 32px;
+  height: 32px;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+.sidebar-close-btn:hover {
+  background: rgba(255,255,255,0.2);
 }
 
 /* Sidebar overlay for mobile */
@@ -1987,6 +2009,10 @@ body {
 
   .sidebar-wrapper.sidebar-mobile-open {
     left: 0;
+  }
+
+  .sidebar-wrapper.sidebar-mobile-open .sidebar-close-btn {
+    display: flex;
   }
 
   .sidebar-overlay {

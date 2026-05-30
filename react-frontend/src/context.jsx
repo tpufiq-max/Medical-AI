@@ -15,6 +15,9 @@ export function AppProvider({ children }) {
     () => localStorage.getItem("lang") || "en"
   );
 
+  // Page navigation state
+  const [page, setPage] = useState("dashboard");
+
   // Notifications state
   const [notifications, setNotifications] = useState(
     () => NotificationService.getAll()
@@ -56,6 +59,7 @@ export function AppProvider({ children }) {
     <AppContext.Provider value={{
       theme, toggleTheme,
       lang, setLang,
+      page, setPage,
       notifications,
       addNotification,
       markNotificationRead,

@@ -17,6 +17,7 @@ function Chatbot() {
   const endRef       = useRef(null);
   const abortRef     = useRef(null);   // AbortController for SSE
   const textareaRef  = useRef(null);
+  const lastAssistantRef = useRef(null); // Track latest assistant message for save
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -158,13 +159,16 @@ function Chatbot() {
             setChat(prev => {
               const last = prev[prev.length - 1];
               if (last?.role === "assistant" && last?.id === msgId) {
+                const updated = (last.streamedText || "") + event.content;
+                lastAssistantRef.current = updated;
                 return prev.map((c, i) =>
                   i === prev.length - 1
-                    ? { ...c, streamedText: (c.streamedText || "") + event.content }
+                    ? { ...c, streamedText: updated }
                     : c
                 );
               }
               // Create the bubble on first token
+              lastAssistantRef.current = event.content;
               return [
                 ...prev,
                 { role: "assistant", id: msgId, streamedText: event.content, isStreaming: true, time: getTime() },
@@ -198,25 +202,17 @@ function Chatbot() {
                   : c
               ));
               // Read aloud a short excerpt
-              setChat(prev => {
-                const last = prev[prev.length - 1];
-                if (last?.role === "assistant") playVoice(last.streamedText?.slice(0, 300) || "");
-                return prev;
-              });
-              // Save consultation and log activity
+              const assistantText = lastAssistantRef.current || '';
+              if (assistantText) playVoice(assistantText.slice(0, 300));
+              // Save consultation and log activity using the ref
               try {
-                setChat(prev => {
-                  const last = prev[prev.length - 1];
-                  if (last?.role === "assistant") {
-                    ConsultationService.save({ type: 'chat', query: message, response: { text: last.streamedText || last.text || '' } });
-                    ActivityLogService.log('chat_response', `AI response for: ${message}`, 'chat');
-                  }
-                  return prev;
-                });
+                ConsultationService.save({ type: 'chat', query: message, response: { text: assistantText } });
+                ActivityLogService.log('chat_response', `AI response for: ${message}`, 'chat');
               } catch {}
             }
             setStreaming(false);
             abortRef.current = null;
+            lastAssistantRef.current = null;
           }
         }
       }

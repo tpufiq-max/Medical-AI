@@ -1,6 +1,8 @@
 // localStorage-backed data services for Medical AI platform
 // All keys prefixed with 'medai_' to avoid conflicts
 
+import { NotificationService } from './notificationService';
+
 const KEYS = {
   consultations: 'medai_consultations',
   records: 'medai_records',
@@ -19,8 +21,9 @@ function getStore(key) {
 function setStore(key, data) {
   try {
     localStorage.setItem(key, JSON.stringify(data));
+    return true;
   } catch {
-    // storage full or unavailable
+    return false;
   }
 }
 
@@ -34,8 +37,6 @@ export const ConsultationService = {
   save(consultation) {
     const items = getStore(KEYS.consultations);
     const entry = {
-      id: generateId(),
-      date: new Date().toISOString(),
       type: consultation.type || 'chat',
       query: consultation.query || '',
       response: consultation.response || null,
@@ -47,7 +48,10 @@ export const ConsultationService = {
       date: consultation.date || new Date().toISOString(),
     };
     items.unshift(entry);
-    setStore(KEYS.consultations, items);
+    const ok = setStore(KEYS.consultations, items);
+    if (!ok) {
+      NotificationService.add({ type: 'warning', title: 'Storage Full', message: 'Unable to save consultation. Local storage is full.' });
+    }
     return entry;
   },
 
@@ -103,9 +107,7 @@ export const MedicalRecordService = {
   save(record) {
     const items = getStore(KEYS.records);
     const entry = {
-      id: generateId(),
       patientId: record.patientId || 'default',
-      date: new Date().toISOString(),
       type: record.type || 'report',
       title: record.title || '',
       content: record.content || '',
@@ -115,7 +117,10 @@ export const MedicalRecordService = {
       date: record.date || new Date().toISOString(),
     };
     items.unshift(entry);
-    setStore(KEYS.records, items);
+    const ok = setStore(KEYS.records, items);
+    if (!ok) {
+      NotificationService.add({ type: 'warning', title: 'Storage Full', message: 'Unable to save medical record. Local storage is full.' });
+    }
     return entry;
   },
 
@@ -155,9 +160,12 @@ export const ActivityLogService = {
       category,
     };
     items.unshift(entry);
-    // Keep only last 500 entries
-    if (items.length > 500) items.length = 500;
-    setStore(KEYS.activity, items);
+    // Keep only last 200 entries to reduce serialization cost
+    if (items.length > 200) items.length = 200;
+    const ok = setStore(KEYS.activity, items);
+    if (!ok) {
+      NotificationService.add({ type: 'warning', title: 'Storage Full', message: 'Unable to save activity log. Local storage is full.' });
+    }
     return entry;
   },
 

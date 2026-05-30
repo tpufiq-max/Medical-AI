@@ -1,18 +1,13 @@
-import { useContext, useState, useEffect } from "react";
+import { useContext, useState, useMemo } from "react";
 import { AppContext } from "../context";
 import { FileText, Download, Eye, Calendar, X, ChevronDown, ChevronUp } from "lucide-react";
 import "./Reports.css";
 
 export default function Reports() {
   const { ConsultationService } = useContext(AppContext);
-  const [reports, setReports] = useState([]);
   const [expandedId, setExpandedId] = useState(null);
 
-  useEffect(() => {
-    generateReports();
-  }, [ConsultationService]);
-
-  const generateReports = () => {
+  const reports = useMemo(() => {
     const consultations = ConsultationService.getAll();
     const generated = [];
 
@@ -58,8 +53,8 @@ export default function Reports() {
       });
     }
 
-    setReports(generated);
-  };
+    return generated;
+  }, [ConsultationService.getAll().length]);
 
   const buildMonthlyContent = (monthName, items, types) => {
     let content = `MONTHLY CONSULTATION REPORT\n`;
