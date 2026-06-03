@@ -5,9 +5,8 @@ import "./chat.css";
 const API = "http://localhost:5001";
 
 function Chatbot() {
-  const { ConsultationService, ActivityLogService } = useContext(AppContext);
+  const { ConsultationService, ActivityLogService, chatHistory, setChatHistory } = useContext(AppContext);
   const [msg, setMsg]           = useState("");
-  const [chat, setChat]         = useState([]);
   const [loading, setLoading]   = useState(false);
   const [listening, setListening] = useState(false);
   const [voiceOn, setVoiceOn]   = useState(true);
@@ -20,7 +19,7 @@ function Chatbot() {
 
   useEffect(() => {
     endRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chat, loading]);
+  }, [chatHistory, loading]);
 
   // Auto-resize textarea
   useEffect(() => {
@@ -35,7 +34,7 @@ function Chatbot() {
 
   // ─── Build conversation history for context ──────────────
   const buildHistory = () =>
-    chat
+    chatHistory
       .filter(c => c.role === "user" || c.role === "assistant")
       .map(c => ({ role: c.role, content: c.text || c.streamedText || "" }));
 
@@ -83,7 +82,7 @@ function Chatbot() {
     setStreaming(false);
     setLoading(false);
     // Mark the last streaming message as complete
-    setChat(prev => prev.map((c, i) =>
+    setChatHistory(prev => prev.map((c, i) =>
       i === prev.length - 1 && c.role === "assistant" && c.isStreaming
         ? { ...c, isStreaming: false }
         : c
@@ -111,7 +110,7 @@ function Chatbot() {
     if (!message || loading || streaming) return;
 
     // Add user bubble
-    setChat(prev => [...prev, { role: "user", text: message, time: getTime() }]);
+setChatHistory(prev => [...prev, { role: "user", text: message, time: getTime() }]);
     setMsg("");
     setLoading(true);
 
@@ -155,7 +154,7 @@ function Chatbot() {
 
           if (event.type === "token") {
             // Append token to streaming assistant bubble
-            setChat(prev => {
+            setChatHistory(prev => {
               const last = prev[prev.length - 1];
               if (last?.role === "assistant" && last?.id === msgId) {
                 return prev.map((c, i) =>
@@ -176,7 +175,7 @@ function Chatbot() {
             isMedicineCard = true;
             const med     = event.data;
             const similar = await fetchSimilar(med.name);
-            setChat(prev => [
+            setChatHistory(prev => [
               ...prev,
               { role: "ai", id: msgId, data: med, similar, time: getTime() },
             ]);
@@ -192,20 +191,20 @@ function Chatbot() {
           else if (event.type === "done") {
             if (!isMedicineCard) {
               // Finalise the streaming bubble
-              setChat(prev => prev.map((c, i) =>
+              setChatHistory(prev => prev.map((c, i) =>
                 i === prev.length - 1 && c.role === "assistant" && c.id === msgId
                   ? { ...c, isStreaming: false, text: c.streamedText }
                   : c
               ));
               // Read aloud a short excerpt
-              setChat(prev => {
+              setChatHistory(prev => {
                 const last = prev[prev.length - 1];
                 if (last?.role === "assistant") playVoice(last.streamedText?.slice(0, 300) || "");
                 return prev;
               });
               // Save consultation and log activity
               try {
-                setChat(prev => {
+                setChatHistory(prev => {
                   const last = prev[prev.length - 1];
                   if (last?.role === "assistant") {
                     ConsultationService.save({ type: 'chat', query: message, response: { text: last.streamedText || last.text || '' } });
@@ -222,20 +221,18 @@ function Chatbot() {
       }
     } catch (err) {
       if (err.name !== "AbortError") {
-        setChat(prev => [...prev, { role: "error", text: "Connection error. Please try again.", time: getTime() }]);
+        setChatHistory(prev => [...prev, { role: "error", text: "Connection error. Please try again.", time: getTime() }]);
       }
       setStreaming(false);
       setLoading(false);
       abortRef.current = null;
     }
-  }, [msg, loading, streaming, chat]);
-
-  // ─── IMAGE SCAN ─────────────────────────────────────────
+  }, [msg, loading, streaming, chatHistory]);
   const handleImage = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     const preview = URL.createObjectURL(file);
-    setChat(prev => [...prev, { role: "user-image", image: preview, time: getTime() }]);
+    setChatHistory(prev => [...prev, { role: "user-image", image: preview, time: getTime() }]);
     const formData = new FormData();
     formData.append("image", file);
     setLoading(true);
@@ -244,7 +241,7 @@ function Chatbot() {
       const data = await res.json();
       const med  = data.data || data;
       const similar = await fetchSimilar(med.name);
-      setChat(prev => [...prev, { role: "ai", data: med, similar, time: getTime() }]);
+      setChatHistory(prev => [...prev, { role: "ai", data: med, similar, time: getTime() }]);
       const usesText = Array.isArray(med.uses) ? med.uses.join(", ") : med.uses;
       setTimeout(() => playVoice(`${med.name}. Uses: ${usesText}`), 300);
       // Save consultation and log activity
@@ -253,7 +250,7 @@ function Chatbot() {
         ActivityLogService.log('chat_image_scan', `Scanned medicine: ${med.name}`, 'chat');
       } catch {}
     } catch {
-      setChat(prev => [...prev, { role: "error", text: "Image scan failed.", time: getTime() }]);
+      setChatHistory(prev => [...prev, { role: "error", text: "Image scan failed.", time: getTime() }]);
     } finally {
       setLoading(false);
       URL.revokeObjectURL(preview);
@@ -294,7 +291,7 @@ function Chatbot() {
 
       {/* MESSAGES */}
       <div className="cb-body">
-        {chat.length === 0 && (
+        {chatHistory.length === 0 && (
           <div className="cb-empty">
             <div className="cb-empty-icon">💊</div>
             <p className="cb-empty-title">Ask about any medicine or health topic</p>
@@ -307,7 +304,7 @@ function Chatbot() {
           </div>
         )}
 
-        {chat.map((c, i) => (
+        {chatHistory.map((c, i) => (
           <div key={i} className={`cb-row cb-row--${c.role}`}>
 
             {c.role === "user" && (
@@ -446,10 +443,10 @@ function Chatbot() {
             <input type="file" accept="image/*" hidden onChange={handleImage} />
           </label>
 
-          {chat.length > 0 && (
+          {chatHistory.length > 0 && (
             <button
               className="cb-tool-btn cb-tool-btn--clear"
-              onClick={() => { stopStream(); stopSpeaking(); setChat([]); }}
+              onClick={() => { stopStream(); stopSpeaking(); setChatHistory([]); }}
               title="Clear chat"
             >
               <TrashIcon /><span className="cb-tool-label">Clear</span>

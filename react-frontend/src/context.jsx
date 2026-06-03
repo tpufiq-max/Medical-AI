@@ -20,6 +20,15 @@ export function AppProvider({ children }) {
     () => NotificationService.getAll()
   );
 
+  const [chatHistory, setChatHistory] = useState(() => {
+    try {
+      const raw = localStorage.getItem("medai_chat_history");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const toggleTheme = () => {
     const next = theme === "dark" ? "light" : "dark";
     setTheme(next);
@@ -52,6 +61,19 @@ export function AppProvider({ children }) {
     setNotifications([]);
   }, []);
 
+  // Persist chat history across page navigation and reloads
+  const updateChatHistory = useCallback((next) => {
+    setChatHistory(prev => {
+      const nextValue = typeof next === "function" ? next(prev) : next;
+      try {
+        localStorage.setItem("medai_chat_history", JSON.stringify(nextValue));
+      } catch {
+        // Ignore storage errors
+      }
+      return nextValue;
+    });
+  }, []);
+
   return (
     <AppContext.Provider value={{
       theme, toggleTheme,
@@ -61,6 +83,8 @@ export function AppProvider({ children }) {
       markNotificationRead,
       markAllNotificationsRead,
       clearNotifications,
+      chatHistory,
+      setChatHistory: updateChatHistory,
       ConsultationService,
       MedicalRecordService,
       ActivityLogService,

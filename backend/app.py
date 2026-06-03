@@ -8,6 +8,7 @@ from PIL import Image
 from datetime import datetime
 import pytesseract
 import os, json, re
+from sqlalchemy.dialects.postgresql import JSON, ARRAY
 
 # ================= INIT =================
 load_dotenv()
@@ -44,6 +45,81 @@ class Interaction(db.Model):
     drug2       = db.Column(db.String(100))
     severity    = db.Column(db.String(50))
     description = db.Column(db.Text)
+
+
+# ═══════════════════════════════════════════════════════════
+#  NEW MODELS FOR CONSULTATION, RECORDS, AND ACTIVITY
+# ═══════════════════════════════════════════════════════════
+
+class Consultation(db.Model):
+    __tablename__ = 'consultations'
+    __table_args__ = {'schema': 'public'}
+
+    id              = db.Column(db.Integer, primary_key=True)
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    consultation_type = db.Column(db.String(50), default='chat')  # 'chat', 'analysis', etc
+    user_query      = db.Column('query', db.Text)
+    response        = db.Column(db.Text)
+    diagnosis       = db.Column(db.Text)
+    symptoms        = db.Column(JSON, default=list)  # Array of symptoms
+    recommendations = db.Column(JSON, default=list)  # Array of recommendations
+    extra_data      = db.Column(JSON, default=dict)  # Additional data
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'date': self.created_at.isoformat(),
+            'type': self.consultation_type,
+            'query': self.user_query,
+            'response': self.response,
+            'diagnosis': self.diagnosis,
+            'symptoms': self.symptoms or [],
+            'recommendations': self.recommendations or [],
+        }
+
+
+class MedicalRecord(db.Model):
+    __tablename__ = 'medical_records'
+    __table_args__ = {'schema': 'public'}
+
+    id          = db.Column(db.Integer, primary_key=True)
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    record_type = db.Column(db.String(50), default='report')  # 'report', 'test', 'scan', etc
+    title       = db.Column(db.String(255))
+    content     = db.Column(db.Text)
+    tags        = db.Column(JSON, default=list)  # Array of tags
+    extra_data  = db.Column(JSON, default=dict)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'date': self.created_at.isoformat(),
+            'type': self.record_type,
+            'title': self.title,
+            'content': self.content,
+            'tags': self.tags or [],
+        }
+
+
+class ActivityLog(db.Model):
+    __tablename__ = 'activity_logs'
+    __table_args__ = {'schema': 'public'}
+
+    id          = db.Column(db.Integer, primary_key=True)
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    action      = db.Column(db.String(100))  # 'chat', 'upload', 'analysis', etc
+    details     = db.Column(db.Text)
+    category    = db.Column(db.String(50), default='general')  # 'general', 'consultation', 'record', etc
+    extra_data  = db.Column(JSON, default=dict)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'timestamp': self.created_at.isoformat(),
+            'action': self.action,
+            'details': self.details,
+            'category': self.category,
+        }
 
 
 # ================= TESSERACT =================
@@ -194,12 +270,217 @@ def is_medicine_query(msg: str) -> bool:
 
 # ================= ROUTES =================
 
+# ═══════════════════════════════════════════════════════════
+#  NEW API ENDPOINTS — CONSULTATIONS, RECORDS, ACTIVITY
+# ═══════════════════════════════════════════════════════════
+
+@app.route("/api/consultations", methods=["GET", "POST"])
+def manage_consultations():
+    """GET: List all consultations | POST: Save new consultation"""
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        try:
+            consultation = Consultation(
+                consultation_type=data.get('type', 'chat'),
+                user_query=data.get('query', ''),
+                response=data.get('response'),
+                diagnosis=data.get('diagnosis', ''),
+                symptoms=data.get('symptoms', []),
+                recommendations=data.get('recommendations', []),
+                extra_data=data.get('metadata', {})
+            )
+            db.session.add(consultation)
+            db.session.commit()
+            
+            # Log activity
+            activity = ActivityLog(
+                action='consultation_saved',
+                details=f"Consultation created: {data.get('query', '')[:100]}",
+                category='consultation'
+            )
+            db.session.add(activity)
+            db.session.commit()
+            
+            return jsonify({'success': True, 'id': consultation.id, 'data': consultation.to_dict()}), 201
+        except Exception as e:
+            db.session.rollback()
+            print("CONSULTATION POST ERROR:", e)
+            return jsonify({'error': str(e)}), 500
+
+    # GET: Return all consultations
+    try:
+        consultations = Consultation.query.order_by(Consultation.created_at.desc()).all()
+        return jsonify([c.to_dict() for c in consultations]), 200
+    except Exception as e:
+        print("CONSULTATION GET ERROR:", e)
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route("/api/consultations/<int:consultation_id>", methods=["GET"])
+def get_consultation(consultation_id):
+    """Get a specific consultation"""
+    try:
+        consultation = Consultation.query.get(consultation_id)
+        if not consultation:
+            return jsonify({'error': 'Consultation not found'}), 404
+        return jsonify(consultation.to_dict()), 200
+    except Exception as e:
+        print("CONSULTATION GET ONE ERROR:", e)
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route("/api/records", methods=["GET", "POST"])
+def manage_records():
+    """GET: List all medical records | POST: Save new record"""
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        try:
+            record = MedicalRecord(
+                record_type=data.get('type', 'report'),
+                title=data.get('title', 'Untitled'),
+                content=data.get('content', ''),
+                tags=data.get('tags', []),
+                extra_data=data.get('metadata', {})
+            )
+            db.session.add(record)
+            db.session.commit()
+            
+            # Log activity
+            activity = ActivityLog(
+                action='record_saved',
+                details=f"Medical record created: {data.get('title', 'Untitled')}",
+                category='record'
+            )
+            db.session.add(activity)
+            db.session.commit()
+            
+            return jsonify({'success': True, 'id': record.id, 'data': record.to_dict()}), 201
+        except Exception as e:
+            db.session.rollback()
+            print("RECORD POST ERROR:", e)
+            return jsonify({'error': str(e)}), 500
+
+    # GET: Return all records
+    try:
+        # Support filtering by type
+        record_type = request.args.get('type')
+        query = MedicalRecord.query
+        if record_type:
+            query = query.filter_by(record_type=record_type)
+        records = query.order_by(MedicalRecord.created_at.desc()).all()
+        return jsonify([r.to_dict() for r in records]), 200
+    except Exception as e:
+        print("RECORD GET ERROR:", e)
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route("/api/records/<int:record_id>", methods=["GET", "DELETE"])
+def manage_record(record_id):
+    """Get or delete a specific record"""
+    try:
+        record = MedicalRecord.query.get(record_id)
+        if not record:
+            return jsonify({'error': 'Record not found'}), 404
+        
+        if request.method == "DELETE":
+            db.session.delete(record)
+            db.session.commit()
+            return jsonify({'success': True, 'message': 'Record deleted'}), 200
+        
+        return jsonify(record.to_dict()), 200
+    except Exception as e:
+        db.session.rollback()
+        print("RECORD MANAGE ERROR:", e)
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route("/api/activity", methods=["GET", "POST"])
+def manage_activity():
+    """GET: List all activity | POST: Log new activity"""
+    if request.method == "POST":
+        data = request.get_json(silent=True) or {}
+        try:
+            activity = ActivityLog(
+                action=data.get('action', 'unknown'),
+                details=data.get('details', ''),
+                category=data.get('category', 'general'),
+                extra_data=data.get('metadata', {})
+            )
+            db.session.add(activity)
+            db.session.commit()
+            return jsonify({'success': True, 'id': activity.id, 'data': activity.to_dict()}), 201
+        except Exception as e:
+            db.session.rollback()
+            print("ACTIVITY POST ERROR:", e)
+            return jsonify({'error': str(e)}), 500
+
+    # GET: Return recent activity
+    try:
+        limit = request.args.get('limit', 50, type=int)
+        category = request.args.get('category')
+        query = ActivityLog.query
+        if category:
+            query = query.filter_by(category=category)
+        activities = query.order_by(ActivityLog.created_at.desc()).limit(limit).all()
+        return jsonify([a.to_dict() for a in activities]), 200
+    except Exception as e:
+        print("ACTIVITY GET ERROR:", e)
+        return jsonify({'error': str(e)}), 500
+
+
+@app.route("/api/analytics", methods=["GET"])
+def get_analytics():
+    """Get analytics summary"""
+    try:
+        # Consultation stats
+        total_consultations = Consultation.query.count()
+        consultation_types = {}
+        for c in Consultation.query.all():
+            consultation_types[c.consultation_type] = consultation_types.get(c.consultation_type, 0) + 1
+
+        # Monthly stats
+        monthly_stats = {}
+        for c in Consultation.query.all():
+            month = c.created_at.strftime('%Y-%m')
+            monthly_stats[month] = monthly_stats.get(month, 0) + 1
+
+        # Record stats
+        total_records = MedicalRecord.query.count()
+        record_types = {}
+        for r in MedicalRecord.query.all():
+            record_types[r.record_type] = record_types.get(r.record_type, 0) + 1
+
+        # Activity stats
+        total_activities = ActivityLog.query.count()
+
+        return jsonify({
+            'consultations': {
+                'total': total_consultations,
+                'byType': consultation_types,
+                'monthly': monthly_stats
+            },
+            'records': {
+                'total': total_records,
+                'byType': record_types
+            },
+            'activities': {
+                'total': total_activities
+            }
+        }), 200
+    except Exception as e:
+        print("ANALYTICS ERROR:", e)
+        return jsonify({'error': str(e)}), 500
+
+
 @app.route("/")
 def home():
     return jsonify({
         "status": "ok",
         "message": "MedAI API is running",
-        "endpoints": ["/search", "/chat", "/stream", "/interaction", "/analyze-image", "/voice", "/stats", "/similar"],
+        "endpoints": [
+            "/search", "/chat", "/stream", "/interaction", "/analyze-image", "/voice", "/stats",
+            "/api/consultations", "/api/records", "/api/activity", "/api/analytics"
+        ],
     }), 200
 
 
