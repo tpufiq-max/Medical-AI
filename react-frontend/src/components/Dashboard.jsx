@@ -11,7 +11,7 @@ import {
 } from "recharts";
 import "./Dashboard.css";
 
-const API = "http://localhost:5001";
+const API = "https://medical-ai-assit.onrender.com";
 
 const STAT_CONFIG = [
   {

@@ -2,9 +2,9 @@ import { useState, useRef, useEffect, useCallback, useContext } from "react";
 import { AppContext } from "../context";
 import "./chat.css";
 
-const API = "http://localhost:5001";
+const API = "https://medical-ai-assit.onrender.com";
 
-function Chatbot() {
+function Chatbot({ goTo }) {
   const { ConsultationService, ActivityLogService, chatHistory, setChatHistory } = useContext(AppContext);
   const [msg, setMsg]           = useState("");
   const [loading, setLoading]   = useState(false);
@@ -88,6 +88,8 @@ function Chatbot() {
         : c
     ));
   };
+
+  // No chat bubble action buttons needed in simplified chat UI.
 
   // ─── FETCH SIMILAR MEDICINES ────────────────────────────
   const fetchSimilar = async (medName) => {

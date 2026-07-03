@@ -18,11 +18,16 @@ function App() {
   const { theme } = useContext(AppContext);         // ← read theme from context
   const [page, setPage] = useState("dashboard");
   const [navOpen, setNavOpen] = useState(false);    // ← mobile sidebar drawer
+  const [pageContext, setPageContext] = useState({});
 
   // Navigate + auto-close drawer on small screens (routing logic unchanged)
-  const goTo = (next) => {
+  const goTo = (next, context = null) => {
     setPage(next);
     setNavOpen(false);
+    setPageContext(prev => ({
+      ...prev,
+      [next]: context || null,
+    }));
   };
 
   return (
@@ -57,12 +62,12 @@ function App() {
         <div className="page-fade" key={page}>
           {page === "dashboard"     && <Dashboard />}
           {page === "search"        && <Search />}
-          {page === "chatbot"       && <Chatbot />}
+          {page === "chatbot"       && <Chatbot goTo={goTo} />}
           {page === "interaction"   && <Interaction />}
           {page === "settings"      && <Settings />}
-          {page === "consultations" && <Consultations />}
-          {page === "history"       && <History />}
-          {page === "reports"       && <Reports />}
+          {page === "consultations" && <Consultations selectedContext={pageContext.consultations} />}
+          {page === "history"       && <History selectedContext={pageContext.history} />}
+          {page === "reports"       && <Reports selectedContext={pageContext.reports} />}
           {page === "analytics"     && <Analytics />}
         </div>
       </div>

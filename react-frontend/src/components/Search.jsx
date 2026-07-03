@@ -2,7 +2,7 @@ import { useState, useRef, useContext } from "react";
 import { AppContext } from "../context";
 import "./Search.css";
 
-const API = "http://localhost:5001";
+const API = "https://medical-ai-assit.onrender.com";
 
 export default function Search() {
   const { ConsultationService, ActivityLogService } = useContext(AppContext);

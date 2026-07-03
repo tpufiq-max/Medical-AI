@@ -4,12 +4,29 @@ import { t } from "../translations";
 import { MedicalRecordService } from "../services/dataService";
 import "./Reports.css";
 
-export default function Reports() {
+export default function Reports({ selectedContext }) {
   const { lang } = useContext(AppContext);
   const [records, setRecords] = useState([]);
   const [selectedRecord, setSelectedRecord] = useState(null);
   const [filterType, setFilterType] = useState("all");
   const [loading, setLoading] = useState(true);
+
+  const matchedRecords = selectedContext?.query
+    ? records.filter((record) => {
+        const query = selectedContext.query.toLowerCase();
+        return [record.title, record.content, record.type, ...(record.tags || [])]
+          .filter(Boolean)
+          .some((field) => field.toLowerCase().includes(query));
+      })
+    : [];
+  const hasMatchedRecords = selectedContext && matchedRecords.length > 0;
+
+  // Filter records based on selected type
+  const filteredRecords = filterType === "all" 
+    ? records 
+    : records.filter(r => r.type === filterType);
+
+  const displayedRecords = hasMatchedRecords ? matchedRecords : filteredRecords;
 
   useEffect(() => {
     let isMounted = true;
@@ -39,13 +56,21 @@ export default function Reports() {
     };
   }, []);
 
-  // Filter records based on selected type
-  const filteredRecords = filterType === "all" 
-    ? records 
-    : records.filter(r => r.type === filterType);
-
   // Get unique record types for filter
   const recordTypes = ["all", ...new Set(records.map(r => r.type))];
+
+  const selectedSummary = selectedContext ? (
+    <div className="reports-selected-summary">
+      <div className="reports-selected-title">Selected from chat</div>
+      <div className="reports-selected-detail"><strong>{selectedContext.title}</strong></div>
+      {selectedContext.subtitle && (
+        <div className="reports-selected-detail">{selectedContext.subtitle}</div>
+      )}
+      {selectedContext.query && (
+        <div className="reports-selected-query">Query: {selectedContext.query}</div>
+      )}
+    </div>
+  ) : null;
 
   return (
     <div className="reports-container">
@@ -58,7 +83,11 @@ export default function Reports() {
         <h1 className="reports-title">{t[lang].reports}</h1>
       </div>
 
-      {records.length === 0 ? (
+      {loading ? (
+        <div className="reports-empty">
+          <p className="reports-empty-text">Loading reports...</p>
+        </div>
+      ) : records.length === 0 ? (
         <div className="reports-empty">
           <p className="reports-empty-text">Your medical reports will appear here.</p>
         </div>
@@ -83,13 +112,17 @@ export default function Reports() {
             <div className="reports-panel-left">
               <div className="reports-panel-title">
                 Medical Records
-                <div className="reports-panel-count">{filteredRecords.length}</div>
+                  <div className="reports-panel-count">{displayedRecords.length}</div>
               </div>
+              {selectedSummary}
+              {selectedContext && hasMatchedRecords && (
+                <div className="reports-filter-note">Showing records that match the selected chat query.</div>
+              )}
               {filteredRecords.length === 0 ? (
                 <p style={{ color: "var(--text-secondary)" }}>No records of this type.</p>
               ) : (
                 <div className="reports-list">
-                  {filteredRecords.map((record) => (
+                      {displayedRecords.map((record) => (
                     <div
                       key={record.id}
                       className={`reports-item ${selectedRecord?.id === record.id ? "active" : ""}`}

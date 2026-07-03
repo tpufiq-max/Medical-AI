@@ -2,7 +2,7 @@ import { useState, useContext } from "react";
 import { AppContext } from "../context";
 import "./Interaction.css";
 
-const API = "http://localhost:5001";
+const API = "https://medical-ai-assit.onrender.com";
 
 export default function Interaction() {
   const { ConsultationService, ActivityLogService } = useContext(AppContext);

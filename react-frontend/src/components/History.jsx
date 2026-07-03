@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { ActivityLogService } from "../services/dataService";
 import "./History.css";
 
-function History() {
+function History({ selectedContext }) {
   const [timeline, setTimeline] = useState([]);
   const [recentLogs, setRecentLogs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -37,6 +37,23 @@ function History() {
     };
   }, []);
 
+  const filteredTimeline = selectedContext
+    ? timeline
+        .map((day) => ({
+          ...day,
+          items: day.items.filter((log) => {
+            const text = `${log.action} ${log.details || ""} ${log.category || ""}`.toLowerCase();
+            return selectedContext.query
+              ? text.includes(selectedContext.query.toLowerCase())
+              : false;
+          }),
+        }))
+        .filter((day) => day.items.length > 0)
+    : timeline;
+
+  const timelineToShow = selectedContext && filteredTimeline.length > 0 ? filteredTimeline : timeline;
+  const hasMatchedActivity = selectedContext && filteredTimeline.length > 0;
+
   return (
     <div className="history-container">
       <div className="history-bg">
@@ -48,6 +65,27 @@ function History() {
         <h1 className="history-title">History</h1>
       </div>
 
+      {selectedContext && (
+        <div className="history-selected-summary">
+          <div className="history-selected-title">Selected from chat</div>
+          <div className="history-selected-detail"><strong>{selectedContext.title}</strong></div>
+          {selectedContext.subtitle && (
+            <div className="history-selected-detail">{selectedContext.subtitle}</div>
+          )}
+          {selectedContext.query && (
+            <div className="history-selected-query">Query: {selectedContext.query}</div>
+          )}
+          {hasMatchedActivity && (
+            <div className="history-selected-match">Showing matching activity items below.</div>
+          )}
+          {selectedContext && !hasMatchedActivity && (
+            <div className="history-selected-match history-selected-no-match">
+              No exact activity match found. Showing full history.
+            </div>
+          )}
+        </div>
+      )}
+
       {timeline.length === 0 ? (
         <div className="history-empty">
           <div className="history-empty-icon">📋</div>
@@ -55,7 +93,7 @@ function History() {
         </div>
       ) : (
         <div className="history-timeline">
-          {timeline.slice(0, 7).map((day) => (
+          {timelineToShow.slice(0, 7).map((day) => (
             <div key={day.date} className="history-day-section">
               <div className="history-day-header">
                 <span className="history-day-date">

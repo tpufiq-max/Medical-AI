@@ -4,11 +4,22 @@ import { t } from "../translations";
 import { ConsultationService } from "../services/dataService";
 import "./Consultations.css";
 
-export default function Consultations() {
+export default function Consultations({ selectedContext }) {
   const { lang } = useContext(AppContext);
   const [consultations, setConsultations] = useState([]);
   const [stats, setStats] = useState({ total: 0, byType: {} });
   const [loading, setLoading] = useState(true);
+
+  const matchedConsultations = selectedContext?.query
+    ? consultations.filter((consultation) => {
+        const query = selectedContext.query.toLowerCase();
+        return [consultation.query, consultation.diagnosis, consultation.type]
+          .filter(Boolean)
+          .some((field) => field.toLowerCase().includes(query));
+      })
+    : [];
+  const hasMatchedConsultations = selectedContext && matchedConsultations.length > 0;
+  const displayConsultations = hasMatchedConsultations ? matchedConsultations : consultations;
 
   useEffect(() => {
     let isMounted = true;
@@ -66,13 +77,28 @@ export default function Consultations() {
 
       <div className="consult-list-section">
         <h2 className="consult-section-title">Recent Consultations</h2>
+        {selectedContext && (
+          <div className="consult-selected-summary">
+            <div className="consult-selected-title">Selected from chat</div>
+            <div className="consult-selected-detail"><strong>{selectedContext.title}</strong></div>
+            {selectedContext.subtitle && (
+              <div className="consult-selected-detail">{selectedContext.subtitle}</div>
+            )}
+            {selectedContext.query && (
+              <div className="consult-selected-query">Query: {selectedContext.query}</div>
+            )}
+          </div>
+        )}
+        {selectedContext && hasMatchedConsultations && (
+          <div className="consult-filter-note">Showing consultations that match the selected chat query.</div>
+        )}
         {consultations.length === 0 ? (
           <div className="consult-empty">
             No consultations yet. Start by having a conversation with the chatbot.
           </div>
         ) : (
           <div className="consult-list">
-            {consultations.slice(0, 10).map((consultation) => (
+            {displayConsultations.slice(0, 10).map((consultation) => (
               <div key={consultation.id} className="consult-card">
                 <div className="consult-card-header">
                   <div className="consult-card-type">{consultation.type}</div>
