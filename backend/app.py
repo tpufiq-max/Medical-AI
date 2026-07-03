@@ -17,10 +17,15 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 # ================= CONFIG =================
-app.config['SQLALCHEMY_DATABASE_URI'] = (
-    f"postgresql://postgres:{os.getenv('DB_PASSWORD', 'Toufiq%40786')}@localhost:5432/meddb"
+# Uses Render's DATABASE_URL env var when present; falls back to the
+# Render PostgreSQL instance URL below only for local/manual runs.
+DATABASE_URL = os.environ.get(
+    "DATABASE_URL",
+    "postgresql://meddb_fgpi_user:7xJYQXw93wPySNQc2OWkT6SGvo9YWllo@dpg-d93ttf7lk1mc73a1tedg-a/meddb_fgpi"
 )
-app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
+
+app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
@@ -123,7 +128,11 @@ class ActivityLog(db.Model):
 
 
 # ================= TESSERACT =================
-pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# Only set the Windows binary path when actually running on Windows.
+# On Render (Linux), tesseract is resolved from PATH instead, avoiding
+# a crash from a hardcoded Windows-only path.
+if os.name == "nt":
+    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # ================= GROQ AI =================
 api_key = os.getenv("GROQ_API_KEY")
@@ -291,7 +300,7 @@ def manage_consultations():
             )
             db.session.add(consultation)
             db.session.commit()
-            
+
             # Log activity
             activity = ActivityLog(
                 action='consultation_saved',
@@ -300,7 +309,7 @@ def manage_consultations():
             )
             db.session.add(activity)
             db.session.commit()
-            
+
             return jsonify({'success': True, 'id': consultation.id, 'data': consultation.to_dict()}), 201
         except Exception as e:
             db.session.rollback()
@@ -344,7 +353,7 @@ def manage_records():
             )
             db.session.add(record)
             db.session.commit()
-            
+
             # Log activity
             activity = ActivityLog(
                 action='record_saved',
@@ -353,7 +362,7 @@ def manage_records():
             )
             db.session.add(activity)
             db.session.commit()
-            
+
             return jsonify({'success': True, 'id': record.id, 'data': record.to_dict()}), 201
         except Exception as e:
             db.session.rollback()
@@ -381,12 +390,12 @@ def manage_record(record_id):
         record = MedicalRecord.query.get(record_id)
         if not record:
             return jsonify({'error': 'Record not found'}), 404
-        
+
         if request.method == "DELETE":
             db.session.delete(record)
             db.session.commit()
             return jsonify({'success': True, 'message': 'Record deleted'}), 200
-        
+
         return jsonify(record.to_dict()), 200
     except Exception as e:
         db.session.rollback()
@@ -810,5 +819,7 @@ def internal_error(e):
 if __name__ == "__main__":
     with app.app_context():
         db.create_all()
-    # threaded=True is required for SSE streaming to work correctly
-    app.run(host="0.0.0.0", port=5001, debug=True, threaded=True)
+    # threaded=True is required for SSE streaming to work correctly.
+    # PORT comes from Render's environment; 5001 is only used locally.
+    port = int(os.environ.get("PORT", 5001))
+    app.run(host="0.0.0.0", port=port, debug=True, threaded=True)
