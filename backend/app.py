@@ -4,9 +4,9 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from groq import Groq
 from typing import Optional
-from PIL import Image
+from PIL import Image, ImageEnhance
 from datetime import datetime
-import pytesseract
+import easyocr
 import os, json, re
 from sqlalchemy.dialects.postgresql import JSON, ARRAY
 
@@ -127,12 +127,10 @@ class ActivityLog(db.Model):
         }
 
 
-# ================= TESSERACT =================
-# Only set the Windows binary path when actually running on Windows.
-# On Render (Linux), tesseract is resolved from PATH instead, avoiding
-# a crash from a hardcoded Windows-only path.
-if os.name == "nt":
-    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# ================= EASY OCR =================
+# EasyOCR is pure Python/PyTorch — no system-level binary (like Tesseract)
+# needs to be installed on the host, so this works on Render out of the box.
+reader = easyocr.Reader(['en'], gpu=False)
 
 # ================= GROQ AI =================
 api_key = os.getenv("GROQ_API_KEY")
@@ -233,6 +231,26 @@ def extract_medicine_name(text: str) -> str:
 
     words = text.split()
     return words[0].strip() if words else "Unknown"
+
+
+def preprocess_image(file) -> str:
+    """
+    Convert an uploaded image to grayscale, boost contrast, and apply a
+    threshold so EasyOCR reads blurry / low-contrast medicine labels
+    more reliably. Saves the processed image to a temp file and returns
+    its path, since EasyOCR's readtext() works well with a file path.
+    """
+    img = Image.open(file).convert("L")  # grayscale
+
+    enhancer = ImageEnhance.Contrast(img)
+    img = enhancer.enhance(2)
+
+    img = img.point(lambda x: 0 if x < 140 else 255)  # threshold
+
+    temp_path = "processed_upload.png"
+    img.save(temp_path)
+
+    return temp_path
 
 # Words that strongly indicate the user wants a conversational answer,
 # NOT a structured medicine card — these always go to the stream.
@@ -778,15 +796,10 @@ def analyze_image():
     if not file:
         return jsonify({"error": "No image provided"}), 400
     try:
-        # Preprocess: grayscale + threshold improves OCR accuracy on
-        # blurry, low-contrast, or boxed medicine label photos.
-        img = Image.open(file).convert("L")
-        img = img.point(lambda x: 0 if x < 140 else 255)
+        processed_path = preprocess_image(file)
 
-        text = pytesseract.image_to_string(
-            img,
-            config="--oem 3 --psm 6"
-        ).strip()
+        results = reader.readtext(processed_path)
+        text = " ".join([r[1] for r in results]).strip()
 
         if not text:
             return jsonify({"error": "No text found in image"}), 400
