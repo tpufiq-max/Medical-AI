@@ -1,37 +1,59 @@
 import os
-from PIL import Image
-import pytesseract
+import re
+from PIL import Image, ImageEnhance
+import easyocr
 
-# ================= TESSERACT =================
-# Only set the Windows binary path when actually running on Windows.
-# On Linux/Mac (and Render), tesseract is resolved from PATH instead.
-if os.name == "nt":
-    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+reader = None
+
+def get_reader():
+    global reader
+    if reader is None:
+        reader = easyocr.Reader(['en'], gpu=False)
+    return reader
 
 
-def extract_medicine_name(text: str) -> str:
-    lines = text.split("\n")
+def preprocess_image(image_path):
+    img = Image.open(image_path).convert("L")
+
+    enhancer = ImageEnhance.Contrast(img)
+    img = enhancer.enhance(2)
+
+    img = img.point(lambda x: 0 if x < 140 else 255)
+
+    temp_path = "processed_test.png"
+    img.save(temp_path)
+
+    return temp_path
+
+
+def extract_medicine_name(text):
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
 
     for line in lines:
-        line = line.strip()
+        clean = re.sub(r"[^a-zA-Z0-9\s]", "", line)
 
-        if len(line) > 3 and not any(char.isdigit() for char in line):
-            return line
+        if len(clean) < 3:
+            continue
 
-    words = text.split()
-    return words[0].strip() if words else "Unknown"
+        if re.search(r"[A-Za-z]{3,}", clean):
+            return clean
+
+    return "Unknown"
 
 
 if __name__ == "__main__":
     IMAGE_PATH = "test.png"
 
     if not os.path.exists(IMAGE_PATH):
-        print(f"ERROR: '{IMAGE_PATH}' not found. Put it next to this script or update IMAGE_PATH.")
+        print(f"ERROR: {IMAGE_PATH} not found")
     else:
-        img = Image.open(IMAGE_PATH)
-        text = pytesseract.image_to_string(img)
+        processed_path = preprocess_image(IMAGE_PATH)
 
-        medicine_name = extract_medicine_name(text)
+        results = get_reader().readtext(processed_path)
 
+        raw_text = " ".join([res[1] for res in results]).strip()
+
+        medicine_name = extract_medicine_name(raw_text)
+
+        print("OCR RAW TEXT:", raw_text)
         print("Detected Medicine:", medicine_name)
-        print("TEXT:", text)
