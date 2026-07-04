@@ -13,7 +13,7 @@ scikit-image==0.26.0
 scipy==1.18.0
 torch==2.12.1
 torchvision==0.27.1
-python-bidi==0.6.6
+python-bidi==0.6.3
 PyYAML==6.0.3
 Shapely==2.1.2
 pyclipper==1.4.0
