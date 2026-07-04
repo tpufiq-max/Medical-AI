@@ -4,9 +4,7 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from groq import Groq
 from typing import Optional
-from PIL import Image, ImageEnhance
 from datetime import datetime
-import easyocr
 import os, json, re
 from sqlalchemy.dialects.postgresql import JSON, ARRAY
 
@@ -127,21 +125,6 @@ class ActivityLog(db.Model):
         }
 
 
-# ================= EASY OCR =================
-# EasyOCR is pure Python/PyTorch — no system-level binary (like Tesseract)
-# needs to be installed on the host, so this works on Render out of the box.
-# The reader is loaded LAZILY (only on the first /analyze-image request)
-# instead of at module import time. Loading it at startup downloads and
-# initializes the model during Render's boot sequence, which can hang or
-# time out the deploy — lazy loading avoids that entirely.
-reader = None
-
-def get_reader():
-    global reader
-    if reader is None:
-        reader = easyocr.Reader(['en'], gpu=False)
-    return reader
-
 # ================= GROQ AI =================
 api_key = os.getenv("GROQ_API_KEY")
 if not api_key:
@@ -242,25 +225,6 @@ def extract_medicine_name(text: str) -> str:
     words = text.split()
     return words[0].strip() if words else "Unknown"
 
-
-def preprocess_image(file) -> str:
-    """
-    Convert an uploaded image to grayscale, boost contrast, and apply a
-    threshold so EasyOCR reads blurry / low-contrast medicine labels
-    more reliably. Saves the processed image to a temp file and returns
-    its path, since EasyOCR's readtext() works well with a file path.
-    """
-    img = Image.open(file).convert("L")  # grayscale
-
-    enhancer = ImageEnhance.Contrast(img)
-    img = enhancer.enhance(2)
-
-    img = img.point(lambda x: 0 if x < 140 else 255)  # threshold
-
-    temp_path = "processed_upload.png"
-    img.save(temp_path)
-
-    return temp_path
 
 # Words that strongly indicate the user wants a conversational answer,
 # NOT a structured medicine card — these always go to the stream.
@@ -798,35 +762,6 @@ Return 4 to 6 similar medicines. No markdown, no explanation."""
     if result and "similar" in result:
         return jsonify({"source": "ai", "similar": result["similar"]}), 200
     return jsonify({"source": "ai", "similar": []}), 200
-
-
-@app.route("/analyze-image", methods=["POST"])
-def analyze_image():
-    file = request.files.get("image")
-    if not file:
-        return jsonify({"error": "No image provided"}), 400
-    try:
-        processed_path = preprocess_image(file)
-
-        results = get_reader().readtext(processed_path)
-        text = " ".join([r[1] for r in results]).strip()
-
-        if not text:
-            return jsonify({"error": "No text found in image"}), 400
-
-        name = extract_medicine_name(text)
-
-        print("OCR RAW TEXT:", text)
-        print("EXTRACTED:", name)
-
-        stats["scans"] += 1
-        add_activity(f"Scanned: {name}")
-        add_history("scan")
-        result = ask_groq(medicine_prompt(name)) or {**FALLBACK, "name": name}
-        return jsonify(result), 200
-    except Exception as e:
-        print("IMAGE ERROR:", e)
-        return jsonify({"error": "Image processing failed."}), 500
 
 
 @app.route("/voice", methods=["GET"])
