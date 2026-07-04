@@ -89,12 +89,23 @@ function Chatbot({ goTo }) {
     ));
   };
 
+  const fetchWithTimeout = async (resource, options = {}, timeout = 60000) => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeout);
+    try {
+      const response = await fetch(resource, { ...options, signal: controller.signal });
+      return response;
+    } finally {
+      clearTimeout(timeoutId);
+    }
+  };
+
   // No chat bubble action buttons needed in simplified chat UI.
 
   // ─── FETCH SIMILAR MEDICINES ────────────────────────────
   const fetchSimilar = async (medName) => {
     try {
-      const res  = await fetch(`${API}/similar`, {
+      const res  = await fetchWithTimeout(`${API}/similar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: medName }),
@@ -120,11 +131,10 @@ setChatHistory(prev => [...prev, { role: "user", text: message, time: getTime() 
     abortRef.current = controller;
 
     try {
-      const res = await fetch(`${API}/stream`, {
+      const res = await fetchWithTimeout(`${API}/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message, history: buildHistory() }),
-        signal: controller.signal,
       });
 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -239,7 +249,7 @@ setChatHistory(prev => [...prev, { role: "user", text: message, time: getTime() 
     formData.append("image", file);
     setLoading(true);
     try {
-      const res  = await fetch(`${API}/analyze-image`, { method: "POST", body: formData });
+      const res  = await fetchWithTimeout(`${API}/analyze-image`, { method: "POST", body: formData });
       const data = await res.json();
       const med  = data.data || data;
       const similar = await fetchSimilar(med.name);

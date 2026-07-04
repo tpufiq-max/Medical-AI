@@ -34,7 +34,11 @@ reader = None
 def get_reader():
     global reader
     if reader is None:
-        reader = easyocr.Reader(['en'], gpu=False)
+        reader = easyocr.Reader(
+            ['en'], 
+            gpu=False, 
+            model_storage_directory='./models'
+        )
     return reader
 
 
