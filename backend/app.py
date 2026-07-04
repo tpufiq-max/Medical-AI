@@ -29,13 +29,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
-reader = None
-
-def get_reader():
-    global reader
-    if reader is None:
-        reader = easyocr.Reader(['en'], gpu=False)
-    return reader
+reader = easyocr.Reader(['en'], gpu=False)
 
 
 def preprocess_image(file) -> str:
@@ -743,9 +737,8 @@ def analyze_image():
 
     processed_path = preprocess_image(file)
     try:
-        reader = get_reader()
-        results = reader.readtext(processed_path, detail=0, paragraph=False)
-        text = " ".join(results).strip()
+        results = reader.readtext(processed_path)
+        text = " ".join([r[1] for r in results]).strip()
 
         if not text:
             return jsonify({"error": "No text found in image"}), 400
