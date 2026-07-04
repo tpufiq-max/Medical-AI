@@ -5,6 +5,8 @@ from dotenv import load_dotenv
 from groq import Groq
 from typing import Optional
 from datetime import datetime
+from PIL import Image, ImageEnhance
+import easyocr
 import os, json, re
 from sqlalchemy.dialects.postgresql import JSON, ARRAY
 
@@ -26,6 +28,24 @@ app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
+
+reader = None
+
+def get_reader():
+    global reader
+    if reader is None:
+        reader = easyocr.Reader(['en'], gpu=False)
+    return reader
+
+
+def preprocess_image(file) -> str:
+    img = Image.open(file).convert("L")
+    enhancer = ImageEnhance.Contrast(img)
+    img = enhancer.enhance(2)
+    img = img.point(lambda x: 0 if x < 140 else 255)
+    temp_path = "processed_upload.png"
+    img.save(temp_path)
+    return temp_path
 
 # ================= MODELS =================
 class Medicine(db.Model):
@@ -713,6 +733,39 @@ def stream_chat():
             "Connection":       "keep-alive",
         },
     )
+
+
+@app.route("/analyze-image", methods=["POST"])
+def analyze_image():
+    file = request.files.get("image")
+    if not file:
+        return jsonify({"error": "No image provided"}), 400
+
+    processed_path = preprocess_image(file)
+    try:
+        reader = get_reader()
+        results = reader.readtext(processed_path, detail=0, paragraph=False)
+        text = " ".join(results).strip()
+
+        if not text:
+            return jsonify({"error": "No text found in image"}), 400
+
+        name = extract_medicine_name(text)
+
+        print("OCR RAW TEXT:", text)
+        print("EXTRACTED:", name)
+
+        stats["scans"] += 1
+        add_activity(f"Scanned: {name}")
+        add_history("scan")
+        result = ask_groq(medicine_prompt(name)) or {**FALLBACK, "name": name}
+        return jsonify(result), 200
+    except Exception as e:
+        print("IMAGE ERROR:", e)
+        return jsonify({"error": "Image processing failed."}), 500
+    finally:
+        if os.path.exists(processed_path):
+            os.remove(processed_path)
 
 
 # ================= SIMILAR MEDICINES =================
