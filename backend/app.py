@@ -209,10 +209,28 @@ def add_history(event_type: str):
 
 # ================= UTIL =================
 def extract_medicine_name(text: str) -> str:
-    for line in text.split("\n"):
-        line = line.strip()
-        if len(line) > 2 and sum(c.isalpha() for c in line) > len(line) * 0.5:
-            return line
+    """
+    Pull a likely medicine name out of raw OCR text.
+    Medicine labels almost always contain digits (Dolo 650, Crocin 500mg,
+    Paracetamol 500), so lines with numbers must NOT be rejected —
+    they are instead cleaned of stray symbols and kept if they still
+    contain a real alphabetic word.
+    """
+    lines = [line.strip() for line in text.split("\n") if line.strip()]
+
+    for line in lines:
+        # Remove anything that isn't a letter, digit, or whitespace
+        clean = re.sub(r"[^a-zA-Z0-9\s]", "", line).strip()
+
+        # Skip very short junk lines
+        if len(clean) < 3:
+            continue
+
+        # Keep the line if it has a real word (3+ letters in a row),
+        # e.g. "Dolo 650", "Paracetamol 500mg", "Crocin"
+        if re.search(r"[A-Za-z]{3,}", clean):
+            return clean
+
     words = text.split()
     return words[0].strip() if words else "Unknown"
 
@@ -760,11 +778,24 @@ def analyze_image():
     if not file:
         return jsonify({"error": "No image provided"}), 400
     try:
-        img  = Image.open(file)
-        text = pytesseract.image_to_string(img).strip()
+        # Preprocess: grayscale + threshold improves OCR accuracy on
+        # blurry, low-contrast, or boxed medicine label photos.
+        img = Image.open(file).convert("L")
+        img = img.point(lambda x: 0 if x < 140 else 255)
+
+        text = pytesseract.image_to_string(
+            img,
+            config="--oem 3 --psm 6"
+        ).strip()
+
         if not text:
             return jsonify({"error": "No text found in image"}), 400
+
         name = extract_medicine_name(text)
+
+        print("OCR RAW TEXT:", text)
+        print("EXTRACTED:", name)
+
         stats["scans"] += 1
         add_activity(f"Scanned: {name}")
         add_history("scan")
