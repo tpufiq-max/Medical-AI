@@ -816,10 +816,10 @@ def internal_error(e):
     return jsonify({"error": "Internal server error"}), 500
 
 
+# Create tables automatically on startup
+with app.app_context():
+    db.create_all()
+
 if __name__ == "__main__":
-    with app.app_context():
-        db.create_all()
-    # threaded=True is required for SSE streaming to work correctly.
-    # PORT comes from Render's environment; 5001 is only used locally.
     port = int(os.environ.get("PORT", 5001))
     app.run(host="0.0.0.0", port=port, debug=True, threaded=True)
