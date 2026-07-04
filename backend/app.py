@@ -130,7 +130,17 @@ class ActivityLog(db.Model):
 # ================= EASY OCR =================
 # EasyOCR is pure Python/PyTorch — no system-level binary (like Tesseract)
 # needs to be installed on the host, so this works on Render out of the box.
-reader = easyocr.Reader(['en'], gpu=False)
+# The reader is loaded LAZILY (only on the first /analyze-image request)
+# instead of at module import time. Loading it at startup downloads and
+# initializes the model during Render's boot sequence, which can hang or
+# time out the deploy — lazy loading avoids that entirely.
+reader = None
+
+def get_reader():
+    global reader
+    if reader is None:
+        reader = easyocr.Reader(['en'], gpu=False)
+    return reader
 
 # ================= GROQ AI =================
 api_key = os.getenv("GROQ_API_KEY")
@@ -795,14 +805,10 @@ def analyze_image():
     file = request.files.get("image")
     if not file:
         return jsonify({"error": "No image provided"}), 400
-
     try:
-        # Load OCR only when needed
-        reader = easyocr.Reader(['en'], gpu=False)
-
         processed_path = preprocess_image(file)
 
-        results = reader.readtext(processed_path)
+        results = get_reader().readtext(processed_path)
         text = " ".join([r[1] for r in results]).strip()
 
         if not text:
@@ -816,10 +822,8 @@ def analyze_image():
         stats["scans"] += 1
         add_activity(f"Scanned: {name}")
         add_history("scan")
-
         result = ask_groq(medicine_prompt(name)) or {**FALLBACK, "name": name}
         return jsonify(result), 200
-
     except Exception as e:
         print("IMAGE ERROR:", e)
         return jsonify({"error": "Image processing failed."}), 500
