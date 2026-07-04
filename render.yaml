@@ -5,10 +5,13 @@ services:
     rootDir: backend
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn app:app
-    aptPackages:
-      - tesseract-ocr
+    plan: free
+
     envVars:
       - key: DATABASE_URL
         sync: false
       - key: GROQ_API_KEY
         sync: false
+
+aptPackages:
+  - tesseract-ocr
