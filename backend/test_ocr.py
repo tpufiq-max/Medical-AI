@@ -48,10 +48,14 @@ if __name__ == "__main__":
         print(f"ERROR: {IMAGE_PATH} not found")
     else:
         processed_path = preprocess_image(IMAGE_PATH)
+        try:
+            reader = get_reader()
+            results = reader.readtext(processed_path, detail=0, paragraph=False)
 
-        results = get_reader().readtext(processed_path)
-
-        raw_text = " ".join([res[1] for res in results]).strip()
+            raw_text = " ".join(results).strip()
+        finally:
+            if os.path.exists(processed_path):
+                os.remove(processed_path)
 
         medicine_name = extract_medicine_name(raw_text)
 
