@@ -795,7 +795,11 @@ def analyze_image():
     file = request.files.get("image")
     if not file:
         return jsonify({"error": "No image provided"}), 400
+
     try:
+        # Load OCR only when needed
+        reader = easyocr.Reader(['en'], gpu=False)
+
         processed_path = preprocess_image(file)
 
         results = reader.readtext(processed_path)
@@ -812,8 +816,10 @@ def analyze_image():
         stats["scans"] += 1
         add_activity(f"Scanned: {name}")
         add_history("scan")
+
         result = ask_groq(medicine_prompt(name)) or {**FALLBACK, "name": name}
         return jsonify(result), 200
+
     except Exception as e:
         print("IMAGE ERROR:", e)
         return jsonify({"error": "Image processing failed."}), 500
