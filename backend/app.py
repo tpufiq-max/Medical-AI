@@ -7,6 +7,7 @@ from typing import Optional
 from datetime import datetime
 from PIL import Image
 import requests
+import io
 import os, json, re
 from sqlalchemy.dialects.postgresql import JSON, ARRAY
 
@@ -68,10 +69,19 @@ def run_ocr(file) -> str:
     if not OCR_SPACE_API_KEY:
         raise RuntimeError("OCR_SPACE_API_KEY not configured on the server")
 
-    file.stream.seek(0)
+    # Normalize whatever the browser sends (.jfif, .heic, weird phone
+    # camera formats, etc.) into a plain JPEG in memory. OCR.space
+    # validates by file extension, so uploads like "dolo.jfif" get
+    # rejected even though the bytes are a perfectly normal JPEG.
+    # Re-encoding here guarantees we always send a ".jpg" it accepts.
+    img = Image.open(file.stream).convert("RGB")
+    buffer = io.BytesIO()
+    img.save(buffer, format="JPEG")
+    buffer.seek(0)
+
     response = requests.post(
         OCR_SPACE_URL,
-        files={"file": (file.filename, file.stream, file.mimetype)},
+        files={"file": ("upload.jpg", buffer, "image/jpeg")},
         data={
             "apikey": OCR_SPACE_API_KEY,
             "language": "eng",
