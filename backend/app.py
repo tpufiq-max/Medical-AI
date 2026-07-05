@@ -5,8 +5,8 @@ from dotenv import load_dotenv
 from groq import Groq
 from typing import Optional
 from datetime import datetime
-from PIL import Image, ImageEnhance
-import easyocr
+from PIL import Image
+import requests
 import os, json, re
 from sqlalchemy.dialects.postgresql import JSON, ARRAY
 
@@ -28,8 +28,13 @@ CORS(
 
 @app.after_request
 def after_request(response):
-    response.headers["Access-Control-Allow-Origin"] = "*"
-    response.headers["Access-Control-Allow-Headers"] = "Content-Type,Authorization"
+    # NOTE: do NOT set Access-Control-Allow-Origin to "*" here — it was
+    # overriding the specific origin set by flask-cors above, and a
+    # wildcard origin combined with supports_credentials=True is invalid
+    # (browsers reject that combination), which was contributing to the
+    # CORS errors seen earlier. flask-cors already sets the correct
+    # origin/headers on every response, so only Allow-Methods is added
+    # here for completeness.
     response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
     return response
 
@@ -46,27 +51,45 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
 
-reader = None
+# ================= OCR (OCR.space API) =================
+# EasyOCR/Tesseract both failed on Render's free tier (memory limits /
+# missing system binaries). OCR.space is a hosted OCR API — we just
+# POST the image bytes and get text back. No local model, no torch,
+# no system dependency, so it works fine within Render's 512MB free tier.
+OCR_SPACE_API_KEY = os.getenv("OCR_SPACE_API_KEY")
+OCR_SPACE_URL = "https://api.ocr.space/parse/image"
 
-def get_reader():
-    global reader
-    if reader is None:
-        reader = easyocr.Reader(
-            ['en'], 
-            gpu=False, 
-            model_storage_directory='./models'
-        )
-    return reader
+def run_ocr(file) -> str:
+    """
+    Send the uploaded image file to OCR.space and return extracted text.
+    Raises RuntimeError with a clear message on failure so the route
+    can turn it into a proper JSON error response.
+    """
+    if not OCR_SPACE_API_KEY:
+        raise RuntimeError("OCR_SPACE_API_KEY not configured on the server")
 
+    file.stream.seek(0)
+    response = requests.post(
+        OCR_SPACE_URL,
+        files={"file": (file.filename, file.stream, file.mimetype)},
+        data={
+            "apikey": OCR_SPACE_API_KEY,
+            "language": "eng",
+            "OCREngine": "2",  # engine 2 handles small/label text better
+            "scale": "true",
+        },
+        timeout=30,
+    )
+    response.raise_for_status()
+    result = response.json()
 
-def preprocess_image(file) -> str:
-    img = Image.open(file).convert("L")
-    enhancer = ImageEnhance.Contrast(img)
-    img = enhancer.enhance(2)
-    img = img.point(lambda x: 0 if x < 140 else 255)
-    temp_path = "processed_upload.png"
-    img.save(temp_path)
-    return temp_path
+    if result.get("IsErroredOnProcessing"):
+        raise RuntimeError(result.get("ErrorMessage", ["OCR processing failed"])[0])
+
+    parsed_results = result.get("ParsedResults") or []
+    text = " ".join(r.get("ParsedText", "") for r in parsed_results).strip()
+    return text
+
 
 # ================= MODELS =================
 class Medicine(db.Model):
@@ -762,34 +785,41 @@ def analyze_image():
         return jsonify({"ok": True}), 200
 
     try:
-        print("REQUEST HIT")
         if "image" not in request.files:
-            print("NO IMAGE FOUND")
             return jsonify({"error": "No image uploaded"}), 400
 
         file = request.files["image"]
-        print("FILE:", file.filename)
-        os.makedirs("uploads", exist_ok=True)
-        file_path = os.path.join("uploads", file.filename)
-        file.save(file_path)
-        print("SAVED:", file_path)
+        if not file or not file.filename:
+            return jsonify({"error": "No image uploaded"}), 400
 
-        reader = get_reader()
-        print("READER LOADED")
-        results = reader.readtext(file_path)
-        print("OCR RESULTS:", results)
+        text = run_ocr(file)
 
-        os.remove(file_path)
-        return jsonify({
-            "success": True,
-            "results": results
-        })
+        if not text:
+            return jsonify({"error": "No text found in image"}), 400
+
+        name = extract_medicine_name(text)
+
+        print("OCR RAW TEXT:", text)
+        print("EXTRACTED:", name)
+
+        stats["scans"] += 1
+        add_activity(f"Scanned: {name}")
+        add_history("scan")
+
+        result = ask_groq(medicine_prompt(name)) or {**FALLBACK, "name": name}
+        return jsonify(result), 200
+
+    except RuntimeError as e:
+        # Known OCR.space failure (bad key, bad image, quota, etc.)
+        print("OCR ERROR:", e)
+        return jsonify({"error": str(e)}), 502
+    except requests.exceptions.RequestException as e:
+        # Network-level failure calling OCR.space
+        print("OCR NETWORK ERROR:", e)
+        return jsonify({"error": "Could not reach OCR service."}), 502
     except Exception as e:
-        print("ERROR:", str(e))
-        return jsonify({
-            "success": False,
-            "error": str(e)
-        }), 500
+        print("IMAGE ERROR:", e)
+        return jsonify({"error": "Image processing failed."}), 500
 
 
 # ================= SIMILAR MEDICINES =================
