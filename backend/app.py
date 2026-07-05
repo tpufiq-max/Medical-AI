@@ -761,39 +761,35 @@ def analyze_image():
     if request.method == "OPTIONS":
         return jsonify({"ok": True}), 200
 
-    print("REQUEST HIT")
-    file = request.files.get("image")
-    if not file:
-        print("NO IMAGE")
-        return jsonify({"error": "No image provided"}), 400
-
-    print("FILE RECEIVED:", file.filename)
-    processed_path = preprocess_image(file)
-    print("FILE SAVED:", processed_path)
     try:
-        results = get_reader().readtext(processed_path)
-        print("OCR DONE")
-        text = " ".join([r[1] for r in results]).strip()
+        print("REQUEST HIT")
+        if "image" not in request.files:
+            print("NO IMAGE FOUND")
+            return jsonify({"error": "No image uploaded"}), 400
 
-        if not text:
-            return jsonify({"error": "No text found in image"}), 400
+        file = request.files["image"]
+        print("FILE:", file.filename)
+        os.makedirs("uploads", exist_ok=True)
+        file_path = os.path.join("uploads", file.filename)
+        file.save(file_path)
+        print("SAVED:", file_path)
 
-        name = extract_medicine_name(text)
+        reader = get_reader()
+        print("READER LOADED")
+        results = reader.readtext(file_path)
+        print("OCR RESULTS:", results)
 
-        print("OCR RAW TEXT:", text)
-        print("EXTRACTED:", name)
-
-        stats["scans"] += 1
-        add_activity(f"Scanned: {name}")
-        add_history("scan")
-        result = ask_groq(medicine_prompt(name)) or {**FALLBACK, "name": name}
-        return jsonify(result), 200
+        os.remove(file_path)
+        return jsonify({
+            "success": True,
+            "results": results
+        })
     except Exception as e:
-        print("IMAGE ERROR:", e)
-        return jsonify({"error": "Image processing failed."}), 500
-    finally:
-        if os.path.exists(processed_path):
-            os.remove(processed_path)
+        print("ERROR:", str(e))
+        return jsonify({
+            "success": False,
+            "error": str(e)
+        }), 500
 
 
 # ================= SIMILAR MEDICINES =================
