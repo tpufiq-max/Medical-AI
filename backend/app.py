@@ -752,13 +752,18 @@ def stream_chat():
 
 @app.route("/analyze-image", methods=["POST"])
 def analyze_image():
+    print("REQUEST HIT")
     file = request.files.get("image")
     if not file:
+        print("NO IMAGE")
         return jsonify({"error": "No image provided"}), 400
 
+    print("FILE RECEIVED:", file.filename)
     processed_path = preprocess_image(file)
+    print("FILE SAVED:", processed_path)
     try:
         results = get_reader().readtext(processed_path)
+        print("OCR DONE")
         text = " ".join([r[1] for r in results]).strip()
 
         if not text:
