@@ -5,21 +5,7 @@ SQLAlchemy==2.0.49
 psycopg2-binary==2.9.12
 python-dotenv==1.2.2
 groq==1.2.0
-easyocr==1.7.2
 Pillow==12.2.0
-numpy==2.2.6
-opencv-python-headless==4.12.0.88
-scikit-image==0.26.0
-scipy==1.18.0
-torch==2.12.1+cpu
-torchvision==0.27.1+cpu
-python-bidi==0.6.11
-PyYAML==6.0.3
-Shapely==2.1.2
-pyclipper==1.4.0
-ninja==1.13.0
 gunicorn==26.0.0
 requests==2.33.1
 SpeechRecognition==3.16.1
-
---extra-index-url https://download.pytorch.org/whl/cpu
