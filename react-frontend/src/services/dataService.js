@@ -1,7 +1,7 @@
 // API-backed data services for Medical AI platform
-// Connects to Flask backend at http://localhost:5001
+// Connects to Flask backend at https://medical-ai-assit.onrender.com
 
-const API_BASE_URL = 'http://localhost:5001/api';
+const API_BASE_URL = 'https://medical-ai-assit.onrender.com/api';
 
 // ─── Helper: API Request Handler ──────────────────────────────────────────
 
