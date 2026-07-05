@@ -373,10 +373,19 @@ def manage_consultations():
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
         try:
+            raw_response = data.get('response')
+            # The `response` column is Text, but the frontend sends the
+            # full medicine card as an object/dict. psycopg2 can't adapt
+            # a dict directly into a text column, so serialize it to a
+            # JSON string first (this was causing "can't adapt type
+            # 'dict'" 500 errors on every consultation save).
+            if isinstance(raw_response, (dict, list)):
+                raw_response = json.dumps(raw_response)
+
             consultation = Consultation(
                 consultation_type=data.get('type', 'chat'),
                 user_query=data.get('query', ''),
-                response=data.get('response'),
+                response=raw_response,
                 diagnosis=data.get('diagnosis', ''),
                 symptoms=data.get('symptoms', []),
                 recommendations=data.get('recommendations', []),
