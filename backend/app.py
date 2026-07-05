@@ -16,8 +16,14 @@ load_dotenv()
 app = Flask(__name__)
 CORS(
     app,
-    resources={r"/*": {"origins": "*"}},
     supports_credentials=True,
+    resources={
+        r"/*": {
+            "origins": [
+                "https://medical-ai-git-main-tpufiq-maxs-projects.vercel.app"
+            ]
+        }
+    },
 )
 
 @app.after_request
@@ -750,8 +756,11 @@ def stream_chat():
     )
 
 
-@app.route("/analyze-image", methods=["POST"])
+@app.route("/analyze-image", methods=["POST", "OPTIONS"])
 def analyze_image():
+    if request.method == "OPTIONS":
+        return jsonify({"ok": True}), 200
+
     print("REQUEST HIT")
     file = request.files.get("image")
     if not file:
