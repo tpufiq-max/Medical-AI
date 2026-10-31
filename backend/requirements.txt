@@ -9,4 +9,4 @@ Pillow==12.2.0
 gunicorn==26.0.0
 requests==2.33.1
 SpeechRecognition==3.16.1
-easyocr==1.6.2
+easyocr==1.7.2
