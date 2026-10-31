@@ -5,8 +5,10 @@ from dotenv import load_dotenv
 from groq import Groq
 from typing import Optional
 from PIL import Image, ImageEnhance
+from io import BytesIO
 from datetime import datetime
 import os, json, re
+import requests
 from sqlalchemy import JSON, text
 
 # ================= INIT =================
@@ -118,25 +120,15 @@ class ActivityLog(db.Model):
         }
 
 
-# ================= EASY OCR =================
-# EasyOCR is pure Python/PyTorch — no system-level binary (like Tesseract)
-# needs to be installed on the host, so this works on Render out of the box.
-# The reader is loaded LAZILY (only on the first /analyze-image request)
-# instead of at module import time. Loading it at startup downloads and
-# initializes the model during Render's boot sequence, which can hang or
-# time out the deploy — lazy loading avoids that entirely.
-reader = None
-
-def get_reader():
-    global reader
-    if reader is None:
-        import easyocr
-
-        reader = easyocr.Reader(['en'], gpu=False)
-    return reader
+# ================= OCR =================
+class OCRServiceError(Exception):
+    def __init__(self, message: str, status_code: int = 502):
+        super().__init__(message)
+        self.status_code = status_code
 
 # ================= GROQ AI =================
 api_key = os.getenv("GROQ_API_KEY")
+GROQ_MODEL = "openai/gpt-oss-20b"
 if not api_key:
     print("Warning: GROQ_API_KEY not found in .env — AI features will be disabled.")
     client = None
@@ -168,7 +160,7 @@ def ask_groq(prompt: str) -> Optional[dict]:
     raw = ""
     try:
         response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model=GROQ_MODEL,
             messages=[
                 {
                     "role": "system",
@@ -236,12 +228,10 @@ def extract_medicine_name(text: str) -> str:
     return words[0].strip() if words else "Unknown"
 
 
-def preprocess_image(file) -> str:
+def preprocess_image(file) -> BytesIO:
     """
     Convert an uploaded image to grayscale, boost contrast, and apply a
-    threshold so EasyOCR reads blurry / low-contrast medicine labels
-    more reliably. Saves the processed image to a temp file and returns
-    its path, since EasyOCR's readtext() works well with a file path.
+    threshold before sending it to the OCR service.
     """
     img = Image.open(file).convert("L")  # grayscale
 
@@ -250,10 +240,43 @@ def preprocess_image(file) -> str:
 
     img = img.point(lambda x: 0 if x < 140 else 255)  # threshold
 
-    temp_path = "processed_upload.png"
-    img.save(temp_path)
+    processed_image = BytesIO()
+    img.save(processed_image, format="PNG")
+    processed_image.seek(0)
 
-    return temp_path
+    return processed_image
+
+
+def extract_text_from_image(file) -> str:
+    api_key = os.getenv("OCR_SPACE_API_KEY")
+    if not api_key:
+        raise OCRServiceError("Image OCR is not configured on the server.", 503)
+
+    processed_image = preprocess_image(file)
+    try:
+        response = requests.post(
+            "https://api.ocr.space/parse/image",
+            headers={"apikey": api_key},
+            files={"file": ("upload.png", processed_image, "image/png")},
+            data={"language": "eng", "isOverlayRequired": "false"},
+            timeout=(5, 45),
+        )
+        response.raise_for_status()
+        payload = response.json()
+    except requests.Timeout as error:
+        raise OCRServiceError("Image OCR service timed out.", 504) from error
+    except requests.RequestException as error:
+        raise OCRServiceError("Image OCR service is unavailable.", 502) from error
+    except ValueError as error:
+        raise OCRServiceError("Image OCR service returned an invalid response.", 502) from error
+    finally:
+        processed_image.close()
+
+    if payload.get("IsErroredOnProcessing"):
+        raise OCRServiceError("Image OCR service could not read this image.", 422)
+
+    results = payload.get("ParsedResults") or []
+    return " ".join(result.get("ParsedText", "") for result in results).strip()
 
 # Words that strongly indicate the user wants a conversational answer,
 # NOT a structured medicine card — these always go to the stream.
@@ -525,6 +548,10 @@ def home():
     return jsonify({
         "status": "ok",
         "message": "MedAI API is running",
+        "integrations": {
+            "groq": "configured" if client is not None else "missing_api_key",
+            "ocr": "configured" if os.getenv("OCR_SPACE_API_KEY") else "missing_api_key",
+        },
         "endpoints": [
             "/search", "/chat", "/stream", "/interaction", "/analyze-image", "/voice", "/stats",
             "/api/consultations", "/api/records", "/api/activity", "/api/analytics"
@@ -715,7 +742,7 @@ def stream_chat():
         else:
             try:
                 stream = client.chat.completions.create(
-                    model="llama-3.1-8b-instant",
+                    model=GROQ_MODEL,
                     messages=messages,
                     temperature=0.6,
                     max_tokens=1024,
@@ -799,10 +826,7 @@ def analyze_image():
     if not file:
         return jsonify({"error": "No image provided"}), 400
     try:
-        processed_path = preprocess_image(file)
-
-        results = get_reader().readtext(processed_path)
-        text = " ".join([r[1] for r in results]).strip()
+        text = extract_text_from_image(file)
 
         if not text:
             return jsonify({"error": "No text found in image"}), 400
@@ -817,6 +841,12 @@ def analyze_image():
         add_history("scan")
         result = ask_groq(medicine_prompt(name)) or {**FALLBACK, "name": name}
         return jsonify(result), 200
+    except OCRServiceError as e:
+        print("OCR ERROR:", e)
+        return jsonify({"error": str(e)}), e.status_code
+    except (OSError, ValueError) as e:
+        print("IMAGE ERROR:", e)
+        return jsonify({"error": "The uploaded image could not be processed."}), 400
     except Exception as e:
         print("IMAGE ERROR:", e)
         return jsonify({"error": "Image processing failed."}), 500
