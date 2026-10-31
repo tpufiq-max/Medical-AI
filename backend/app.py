@@ -4,107 +4,27 @@ from flask_cors import CORS
 from dotenv import load_dotenv
 from groq import Groq
 from typing import Optional
+from PIL import Image, ImageEnhance
 from datetime import datetime
-from PIL import Image
-import requests
-import io
+import easyocr
 import os, json, re
-from sqlalchemy import JSON
+from sqlalchemy import JSON, text
 
 # ================= INIT =================
 load_dotenv()
 
 app = Flask(__name__)
-CORS(
-    app,
-    supports_credentials=True,
-    resources={
-        r"/*": {
-            "origins": [
-                "https://medical-ai-git-main-tpufiq-maxs-projects.vercel.app"
-            ]
-        }
-    },
-)
-
-@app.after_request
-def after_request(response):
-    # NOTE: do NOT set Access-Control-Allow-Origin to "*" here — it was
-    # overriding the specific origin set by flask-cors above, and a
-    # wildcard origin combined with supports_credentials=True is invalid
-    # (browsers reject that combination), which was contributing to the
-    # CORS errors seen earlier. flask-cors already sets the correct
-    # origin/headers on every response, so only Allow-Methods is added
-    # here for completeness.
-    response.headers["Access-Control-Allow-Methods"] = "GET,POST,PUT,DELETE,OPTIONS"
-    return response
+CORS(app, resources={r"/*": {"origins": "*"}})
 
 # ================= CONFIG =================
-# If DATABASE_URL is configured, use that hosted database.
-# If not, use a local SQLite file so the app can start without Render PostgreSQL.
-# NOTE: SQLite data on Render's default filesystem may be lost on redeploy/restart.
-DATABASE_URL = (os.environ.get("DATABASE_URL") or "").strip()
+# Uses a local SQLite file instead of a hosted PostgreSQL database.
+# All existing OCR, AI, and API routes are retained.
+DATABASE_URL = "sqlite:///medai.db"
 
-if DATABASE_URL.startswith("postgres://"):
-    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
-
-if DATABASE_URL:
-    app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
-else:
-    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///medai.db"
-
+app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
-
-# ================= OCR (OCR.space API) =================
-# EasyOCR/Tesseract both failed on Render's free tier (memory limits /
-# missing system binaries). OCR.space is a hosted OCR API — we just
-# POST the image bytes and get text back. No local model, no torch,
-# no system dependency, so it works fine within Render's 512MB free tier.
-OCR_SPACE_API_KEY = os.getenv("OCR_SPACE_API_KEY")
-OCR_SPACE_URL = "https://api.ocr.space/parse/image"
-
-def run_ocr(file) -> str:
-    """
-    Send the uploaded image file to OCR.space and return extracted text.
-    Raises RuntimeError with a clear message on failure so the route
-    can turn it into a proper JSON error response.
-    """
-    if not OCR_SPACE_API_KEY:
-        raise RuntimeError("OCR_SPACE_API_KEY not configured on the server")
-
-    # Normalize whatever the browser sends (.jfif, .heic, weird phone
-    # camera formats, etc.) into a plain JPEG in memory. OCR.space
-    # validates by file extension, so uploads like "dolo.jfif" get
-    # rejected even though the bytes are a perfectly normal JPEG.
-    # Re-encoding here guarantees we always send a ".jpg" it accepts.
-    img = Image.open(file.stream).convert("RGB")
-    buffer = io.BytesIO()
-    img.save(buffer, format="JPEG")
-    buffer.seek(0)
-
-    response = requests.post(
-        OCR_SPACE_URL,
-        files={"file": ("upload.jpg", buffer, "image/jpeg")},
-        data={
-            "apikey": OCR_SPACE_API_KEY,
-            "language": "eng",
-            "OCREngine": "2",  # engine 2 handles small/label text better
-            "scale": "true",
-        },
-        timeout=30,
-    )
-    response.raise_for_status()
-    result = response.json()
-
-    if result.get("IsErroredOnProcessing"):
-        raise RuntimeError(result.get("ErrorMessage", ["OCR processing failed"])[0])
-
-    parsed_results = result.get("ParsedResults") or []
-    text = " ".join(r.get("ParsedText", "") for r in parsed_results).strip()
-    return text
-
 
 # ================= MODELS =================
 class Medicine(db.Model):
@@ -198,6 +118,21 @@ class ActivityLog(db.Model):
             'category': self.category,
         }
 
+
+# ================= EASY OCR =================
+# EasyOCR is pure Python/PyTorch — no system-level binary (like Tesseract)
+# needs to be installed on the host, so this works on Render out of the box.
+# The reader is loaded LAZILY (only on the first /analyze-image request)
+# instead of at module import time. Loading it at startup downloads and
+# initializes the model during Render's boot sequence, which can hang or
+# time out the deploy — lazy loading avoids that entirely.
+reader = None
+
+def get_reader():
+    global reader
+    if reader is None:
+        reader = easyocr.Reader(['en'], gpu=False)
+    return reader
 
 # ================= GROQ AI =================
 api_key = os.getenv("GROQ_API_KEY")
@@ -300,6 +235,25 @@ def extract_medicine_name(text: str) -> str:
     return words[0].strip() if words else "Unknown"
 
 
+def preprocess_image(file) -> str:
+    """
+    Convert an uploaded image to grayscale, boost contrast, and apply a
+    threshold so EasyOCR reads blurry / low-contrast medicine labels
+    more reliably. Saves the processed image to a temp file and returns
+    its path, since EasyOCR's readtext() works well with a file path.
+    """
+    img = Image.open(file).convert("L")  # grayscale
+
+    enhancer = ImageEnhance.Contrast(img)
+    img = enhancer.enhance(2)
+
+    img = img.point(lambda x: 0 if x < 140 else 255)  # threshold
+
+    temp_path = "processed_upload.png"
+    img.save(temp_path)
+
+    return temp_path
+
 # Words that strongly indicate the user wants a conversational answer,
 # NOT a structured medicine card — these always go to the stream.
 GENERAL_HEALTH_KEYWORDS = [
@@ -373,19 +327,10 @@ def manage_consultations():
     if request.method == "POST":
         data = request.get_json(silent=True) or {}
         try:
-            raw_response = data.get('response')
-            # The `response` column is Text, but the frontend sends the
-            # full medicine card as an object/dict. psycopg2 can't adapt
-            # a dict directly into a text column, so serialize it to a
-            # JSON string first (this was causing "can't adapt type
-            # 'dict'" 500 errors on every consultation save).
-            if isinstance(raw_response, (dict, list)):
-                raw_response = json.dumps(raw_response)
-
             consultation = Consultation(
                 consultation_type=data.get('type', 'chat'),
                 user_query=data.get('query', ''),
-                response=raw_response,
+                response=data.get('response'),
                 diagnosis=data.get('diagnosis', ''),
                 symptoms=data.get('symptoms', []),
                 recommendations=data.get('recommendations', []),
@@ -798,49 +743,6 @@ def stream_chat():
     )
 
 
-@app.route("/analyze-image", methods=["POST", "OPTIONS"])
-def analyze_image():
-    if request.method == "OPTIONS":
-        return jsonify({"ok": True}), 200
-
-    try:
-        if "image" not in request.files:
-            return jsonify({"error": "No image uploaded"}), 400
-
-        file = request.files["image"]
-        if not file or not file.filename:
-            return jsonify({"error": "No image uploaded"}), 400
-
-        text = run_ocr(file)
-
-        if not text:
-            return jsonify({"error": "No text found in image"}), 400
-
-        name = extract_medicine_name(text)
-
-        print("OCR RAW TEXT:", text)
-        print("EXTRACTED:", name)
-
-        stats["scans"] += 1
-        add_activity(f"Scanned: {name}")
-        add_history("scan")
-
-        result = ask_groq(medicine_prompt(name)) or {**FALLBACK, "name": name}
-        return jsonify(result), 200
-
-    except RuntimeError as e:
-        # Known OCR.space failure (bad key, bad image, quota, etc.)
-        print("OCR ERROR:", e)
-        return jsonify({"error": str(e)}), 502
-    except requests.exceptions.RequestException as e:
-        # Network-level failure calling OCR.space
-        print("OCR NETWORK ERROR:", e)
-        return jsonify({"error": "Could not reach OCR service."}), 502
-    except Exception as e:
-        print("IMAGE ERROR:", e)
-        return jsonify({"error": "Image processing failed."}), 500
-
-
 # ================= SIMILAR MEDICINES =================
 @app.route("/similar", methods=["GET", "POST"])
 def similar():
@@ -890,6 +792,35 @@ Return 4 to 6 similar medicines. No markdown, no explanation."""
     return jsonify({"source": "ai", "similar": []}), 200
 
 
+@app.route("/analyze-image", methods=["POST"])
+def analyze_image():
+    file = request.files.get("image")
+    if not file:
+        return jsonify({"error": "No image provided"}), 400
+    try:
+        processed_path = preprocess_image(file)
+
+        results = get_reader().readtext(processed_path)
+        text = " ".join([r[1] for r in results]).strip()
+
+        if not text:
+            return jsonify({"error": "No text found in image"}), 400
+
+        name = extract_medicine_name(text)
+
+        print("OCR RAW TEXT:", text)
+        print("EXTRACTED:", name)
+
+        stats["scans"] += 1
+        add_activity(f"Scanned: {name}")
+        add_history("scan")
+        result = ask_groq(medicine_prompt(name)) or {**FALLBACK, "name": name}
+        return jsonify(result), 200
+    except Exception as e:
+        print("IMAGE ERROR:", e)
+        return jsonify({"error": "Image processing failed."}), 500
+
+
 @app.route("/voice", methods=["GET"])
 def voice():
     try:
@@ -937,4 +868,4 @@ with app.app_context():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
-    app.run(host="0.0.0.0", port=port, debug=True, threaded=True);
+    app.run(host="0.0.0.0", port=port, debug=False, threaded=True)
