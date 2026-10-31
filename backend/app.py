@@ -9,37 +9,22 @@ from PIL import Image
 import requests
 import io
 import os, json, re
-from sqlalchemy.dialects.postgresql import JSON, ARRAY
-from sqlalchemy import text
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import JSON
 
 # ================= INIT =================
 load_dotenv()
 
 app = Flask(__name__)
-allowed_origins = [
-    "https://medical-ai-git-main-tpufiq-maxs-projects.vercel.app",
-    "http://localhost:5173",
-    "http://localhost:4173",
-    "http://localhost:4174",
-    "http://127.0.0.1:5173",
-    "http://127.0.0.1:4173",
-    "http://127.0.0.1:4174",
-    "http://127.0.0.1:5001",
-    "http://0.0.0.0:5173",
-    "http://0.0.0.0:4173",
-    "http://0.0.0.0:4174",
-]
-allowed_local_origin = re.compile(
-    r"^http://(?:localhost|127(?:\.\d{1,3}){3}|0\.0\.0\.0|"
-    r"10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|"
-    r"172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}):\d+$"
-)
-
 CORS(
     app,
     supports_credentials=True,
-    resources={r"/*": {"origins": [*allowed_origins, allowed_local_origin]}},
+    resources={
+        r"/*": {
+            "origins": [
+                "https://medical-ai-git-main-tpufiq-maxs-projects.vercel.app"
+            ]
+        }
+    },
 )
 
 @app.after_request
@@ -55,14 +40,19 @@ def after_request(response):
     return response
 
 # ================= CONFIG =================
-# Uses Render's DATABASE_URL env var when present; falls back to the
-# Render PostgreSQL instance URL below only for local/manual runs.
-DATABASE_URL = os.environ.get(
-    "DATABASE_URL",
-    "postgresql://meddb_fgpi_user:7xJYQXw93wPySNQc2OWkT6SGvo9YWllo@dpg-d93ttf7lk1mc73a1tedg-a/meddb_fgpi"
-)
+# If DATABASE_URL is configured, use that hosted database.
+# If not, use a local SQLite file so the app can start without Render PostgreSQL.
+# NOTE: SQLite data on Render's default filesystem may be lost on redeploy/restart.
+DATABASE_URL = (os.environ.get("DATABASE_URL") or "").strip()
 
-app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+if DATABASE_URL.startswith("postgres://"):
+    DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+
+if DATABASE_URL:
+    app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+else:
+    app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///medai.db"
+
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 db = SQLAlchemy(app)
@@ -119,7 +109,6 @@ def run_ocr(file) -> str:
 # ================= MODELS =================
 class Medicine(db.Model):
     __tablename__ = 'medicine'
-    __table_args__ = {'schema': 'public'}
 
     id           = db.Column(db.Integer, primary_key=True)
     name         = db.Column(db.String(100))
@@ -130,7 +119,6 @@ class Medicine(db.Model):
 
 class Interaction(db.Model):
     __tablename__ = 'interaction'
-    __table_args__ = {'schema': 'public'}
 
     id          = db.Column(db.Integer, primary_key=True)
     drug1       = db.Column(db.String(100))
@@ -145,7 +133,6 @@ class Interaction(db.Model):
 
 class Consultation(db.Model):
     __tablename__ = 'consultations'
-    __table_args__ = {'schema': 'public'}
 
     id              = db.Column(db.Integer, primary_key=True)
     created_at      = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -172,7 +159,6 @@ class Consultation(db.Model):
 
 class MedicalRecord(db.Model):
     __tablename__ = 'medical_records'
-    __table_args__ = {'schema': 'public'}
 
     id          = db.Column(db.Integer, primary_key=True)
     created_at  = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -195,7 +181,6 @@ class MedicalRecord(db.Model):
 
 class ActivityLog(db.Model):
     __tablename__ = 'activity_logs'
-    __table_args__ = {'schema': 'public'}
 
     id          = db.Column(db.Integer, primary_key=True)
     created_at  = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
@@ -215,7 +200,6 @@ class ActivityLog(db.Model):
 
 
 # ================= GROQ AI =================
-GROQ_MODEL = "qwen/qwen3.8-27b"
 api_key = os.getenv("GROQ_API_KEY")
 if not api_key:
     print("Warning: GROQ_API_KEY not found in .env — AI features will be disabled.")
@@ -248,7 +232,7 @@ def ask_groq(prompt: str) -> Optional[dict]:
     raw = ""
     try:
         response = client.chat.completions.create(
-            model=GROQ_MODEL,
+            model="llama-3.1-8b-instant",
             messages=[
                 {
                     "role": "system",
@@ -260,8 +244,7 @@ def ask_groq(prompt: str) -> Optional[dict]:
                 {"role": "user", "content": prompt},
             ],
             temperature=0.2,
-            max_tokens=512,
-            response_format={"type": "json_object"},
+            max_tokens=800,
         )
         raw = response.choices[0].message.content.strip()
         clean = re.sub(r"^```(?:json)?|```$", "", raw, flags=re.MULTILINE).strip()
@@ -379,17 +362,6 @@ def is_medicine_query(msg: str) -> bool:
     return False
 
 # ================= ROUTES =================
-
-@app.route("/api/health", methods=["GET"])
-def api_health():
-    try:
-        db.session.execute(text("SELECT 1"))
-    except SQLAlchemyError:
-        app.logger.exception("API health check failed while checking the database")
-        db.session.rollback()
-        return jsonify({"status": "error", "database": "unavailable"}), 503
-
-    return jsonify({"status": "ok", "database": "ok"}), 200
 
 # ═══════════════════════════════════════════════════════════
 #  NEW API ENDPOINTS — CONSULTATIONS, RECORDS, ACTIVITY
@@ -608,7 +580,7 @@ def home():
         "status": "ok",
         "message": "MedAI API is running",
         "endpoints": [
-            "/search", "/chat", "/stream", "/interaction", "/analyze-image", "/voice", "/stats", "/api/health",
+            "/search", "/chat", "/stream", "/interaction", "/analyze-image", "/voice", "/stats",
             "/api/consultations", "/api/records", "/api/activity", "/api/analytics"
         ],
     }), 200
@@ -797,10 +769,10 @@ def stream_chat():
         else:
             try:
                 stream = client.chat.completions.create(
-                    model=GROQ_MODEL,
+                    model="llama-3.1-8b-instant",
                     messages=messages,
                     temperature=0.6,
-                    max_tokens=640,
+                    max_tokens=1024,
                     stream=True,
                 )
                 for chunk in stream:
@@ -965,4 +937,4 @@ with app.app_context():
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5001))
-    app.run(host="0.0.0.0", port=port, debug=True, threaded=True)
+    app.run(host="0.0.0.0", port=port, debug=True, threaded=True);
