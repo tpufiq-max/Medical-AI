@@ -6,7 +6,6 @@ from groq import Groq
 from typing import Optional
 from PIL import Image, ImageEnhance
 from datetime import datetime
-import easyocr
 import os, json, re
 from sqlalchemy import JSON, text
 
@@ -131,6 +130,8 @@ reader = None
 def get_reader():
     global reader
     if reader is None:
+        import easyocr
+
         reader = easyocr.Reader(['en'], gpu=False)
     return reader
 

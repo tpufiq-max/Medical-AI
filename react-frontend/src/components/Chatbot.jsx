@@ -253,7 +253,7 @@ setChatHistory(prev => [...prev, { role: "user", text: message, time: getTime() 
     formData.append("image", file);
     setLoading(true);
     try {
-      const res  = await fetchWithTimeout(`${API}/analyze-image`, { method: "POST", body: formData });
+      const res  = await fetchWithTimeout(`${API_URL}/analyze-image`, { method: "POST", body: formData });
       const data = await res.json();
       const med  = data.data || data;
       const similar = await fetchSimilar(med.name);
