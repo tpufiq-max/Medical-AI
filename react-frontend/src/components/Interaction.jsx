@@ -1,8 +1,7 @@
 import { useState, useContext } from "react";
 import { AppContext } from "../context";
+import { API_URL } from "../services/api";
 import "./Interaction.css";
-
-const API = "https://medical-ai-assit.onrender.com";
 
 export default function Interaction() {
   const { ConsultationService, ActivityLogService } = useContext(AppContext);
@@ -33,7 +32,7 @@ export default function Interaction() {
     const form = new FormData();
     form.append("image", file);
     try {
-      const res  = await fetch(`${API}/analyze-image`, { method: "POST", body: form });
+      const res  = await fetch(`${API_URL}/analyze-image`, { method: "POST", body: form });
       const data = await res.json();
       const name = data?.name || data?.data?.name;
       if (name) {
@@ -58,7 +57,7 @@ export default function Interaction() {
     }
     setLoading(true);
     try {
-      const res  = await fetch(`${API}/interaction`, {
+      const res  = await fetch(`${API_URL}/interaction`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ drug1: drug1.trim(), drug2: drug2.trim() }),

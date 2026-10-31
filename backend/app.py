@@ -10,21 +10,36 @@ import requests
 import io
 import os, json, re
 from sqlalchemy.dialects.postgresql import JSON, ARRAY
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 
 # ================= INIT =================
 load_dotenv()
 
 app = Flask(__name__)
+allowed_origins = [
+    "https://medical-ai-git-main-tpufiq-maxs-projects.vercel.app",
+    "http://localhost:5173",
+    "http://localhost:4173",
+    "http://localhost:4174",
+    "http://127.0.0.1:5173",
+    "http://127.0.0.1:4173",
+    "http://127.0.0.1:4174",
+    "http://127.0.0.1:5001",
+    "http://0.0.0.0:5173",
+    "http://0.0.0.0:4173",
+    "http://0.0.0.0:4174",
+]
+allowed_local_origin = re.compile(
+    r"^http://(?:localhost|127(?:\.\d{1,3}){3}|0\.0\.0\.0|"
+    r"10(?:\.\d{1,3}){3}|192\.168(?:\.\d{1,3}){2}|"
+    r"172\.(?:1[6-9]|2\d|3[01])(?:\.\d{1,3}){2}):\d+$"
+)
+
 CORS(
     app,
     supports_credentials=True,
-    resources={
-        r"/*": {
-            "origins": [
-                "https://medical-ai-git-main-tpufiq-maxs-projects.vercel.app"
-            ]
-        }
-    },
+    resources={r"/*": {"origins": [*allowed_origins, allowed_local_origin]}},
 )
 
 @app.after_request
@@ -200,6 +215,7 @@ class ActivityLog(db.Model):
 
 
 # ================= GROQ AI =================
+GROQ_MODEL = "qwen/qwen3.8-27b"
 api_key = os.getenv("GROQ_API_KEY")
 if not api_key:
     print("Warning: GROQ_API_KEY not found in .env — AI features will be disabled.")
@@ -232,7 +248,7 @@ def ask_groq(prompt: str) -> Optional[dict]:
     raw = ""
     try:
         response = client.chat.completions.create(
-            model="llama-3.1-8b-instant",
+            model=GROQ_MODEL,
             messages=[
                 {
                     "role": "system",
@@ -244,7 +260,8 @@ def ask_groq(prompt: str) -> Optional[dict]:
                 {"role": "user", "content": prompt},
             ],
             temperature=0.2,
-            max_tokens=800,
+            max_tokens=512,
+            response_format={"type": "json_object"},
         )
         raw = response.choices[0].message.content.strip()
         clean = re.sub(r"^```(?:json)?|```$", "", raw, flags=re.MULTILINE).strip()
@@ -362,6 +379,17 @@ def is_medicine_query(msg: str) -> bool:
     return False
 
 # ================= ROUTES =================
+
+@app.route("/api/health", methods=["GET"])
+def api_health():
+    try:
+        db.session.execute(text("SELECT 1"))
+    except SQLAlchemyError:
+        app.logger.exception("API health check failed while checking the database")
+        db.session.rollback()
+        return jsonify({"status": "error", "database": "unavailable"}), 503
+
+    return jsonify({"status": "ok", "database": "ok"}), 200
 
 # ═══════════════════════════════════════════════════════════
 #  NEW API ENDPOINTS — CONSULTATIONS, RECORDS, ACTIVITY
@@ -580,7 +608,7 @@ def home():
         "status": "ok",
         "message": "MedAI API is running",
         "endpoints": [
-            "/search", "/chat", "/stream", "/interaction", "/analyze-image", "/voice", "/stats",
+            "/search", "/chat", "/stream", "/interaction", "/analyze-image", "/voice", "/stats", "/api/health",
             "/api/consultations", "/api/records", "/api/activity", "/api/analytics"
         ],
     }), 200
@@ -769,10 +797,10 @@ def stream_chat():
         else:
             try:
                 stream = client.chat.completions.create(
-                    model="llama-3.1-8b-instant",
+                    model=GROQ_MODEL,
                     messages=messages,
                     temperature=0.6,
-                    max_tokens=1024,
+                    max_tokens=640,
                     stream=True,
                 )
                 for chunk in stream:

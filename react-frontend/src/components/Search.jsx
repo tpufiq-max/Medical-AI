@@ -1,8 +1,7 @@
 import { useState, useRef, useContext } from "react";
 import { AppContext } from "../context";
+import { API_URL } from "../services/api";
 import "./Search.css";
-
-const API = "https://medical-ai-assit.onrender.com";
 
 export default function Search() {
   const { ConsultationService, ActivityLogService } = useContext(AppContext);
@@ -23,7 +22,7 @@ export default function Search() {
     setLoading(true);
     reset();
     try {
-      const res = await fetch(`${API}/search`, {
+      const res = await fetch(`${API_URL}/search`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: name.toLowerCase() }),
@@ -56,7 +55,7 @@ export default function Search() {
     form.append("image", file);
 
     try {
-      const res  = await fetch(`${API}/analyze-image`, { method: "POST", body: form });
+      const res  = await fetch(`${API_URL}/analyze-image`, { method: "POST", body: form });
       const json = await res.json();
       if (!res.ok || json.error) throw new Error(json.error || "Scan failed");
 

@@ -1,8 +1,7 @@
 import { useState, useRef, useEffect, useCallback, useContext } from "react";
 import { AppContext } from "../context";
+import { API_URL } from "../services/api";
 import "./chat.css";
-
-const API = "https://medical-ai-assit.onrender.com";
 
 function Chatbot({ goTo }) {
   const { ConsultationService, ActivityLogService, chatHistory, setChatHistory } = useContext(AppContext);
@@ -105,7 +104,7 @@ function Chatbot({ goTo }) {
   // ─── FETCH SIMILAR MEDICINES ────────────────────────────
   const fetchSimilar = async (medName) => {
     try {
-      const res  = await fetchWithTimeout(`${API}/similar`, {
+      const res  = await fetchWithTimeout(`${API_URL}/similar`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: medName }),
@@ -131,7 +130,7 @@ setChatHistory(prev => [...prev, { role: "user", text: message, time: getTime() 
     abortRef.current = controller;
 
     try {
-      const res = await fetchWithTimeout(`${API}/stream`, {
+      const res = await fetchWithTimeout(`${API_URL}/stream`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ message, history: buildHistory() }),
@@ -185,12 +184,17 @@ setChatHistory(prev => [...prev, { role: "user", text: message, time: getTime() 
 
           else if (event.type === "medicine") {
             isMedicineCard = true;
-            const med     = event.data;
-            const similar = await fetchSimilar(med.name);
+            const med = event.data;
             setChatHistory(prev => [
               ...prev,
-              { role: "ai", id: msgId, data: med, similar, time: getTime() },
+              { role: "ai", id: msgId, data: med, similar: [], time: getTime() },
             ]);
+            void fetchSimilar(med.name).then((similar) => {
+              if (!similar.length) return;
+              setChatHistory(prev => prev.map(item =>
+                item.id === msgId ? { ...item, similar } : item
+              ));
+            });
             const speech = `${med.name}. Uses: ${Array.isArray(med.uses) ? med.uses.join(", ") : med.uses}.`;
             setTimeout(() => playVoice(speech), 300);
             // Save consultation and log activity

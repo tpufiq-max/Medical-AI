@@ -9,9 +9,8 @@ import {
   ResponsiveContainer,
   CartesianGrid,
 } from "recharts";
+import { API_URL } from "../services/api";
 import "./Dashboard.css";
-
-const API = "https://medical-ai-assit.onrender.com";
 
 const STAT_CONFIG = [
   {
@@ -99,41 +98,68 @@ function TimelineItem({ item, index }) {
   );
 }
 
+const DEFAULT_STATS = {
+  searches: 0,
+  interactions: 0,
+  chats: 0,
+  scans: 0,
+  streams: 0,
+};
+
 export default function Dashboard() {
-  const [stats, setStats] = useState(null);
+  const [stats, setStats] = useState(DEFAULT_STATS);
   const [recent, setRecent] = useState([]);
   const [history, setHistory] = useState([]);
   const [error, setError] = useState("");
   const [updating, setUpdating] = useState(false);
 
   useEffect(() => {
-    const fetchStats = () => {
-      setUpdating(true);
-      fetch(`${API}/stats`)
-        .then((r) => r.json())
-        .then((data) => {
-          setStats(data.stats || {});
-          setRecent(data.recent || []);
-          setHistory(data.history || []);
-          setError("");
-        })
-        .catch(() => setError("Failed to load dashboard data"))
-        .finally(() => setUpdating(false));
+    let cancelled = false;
+    let timer;
+
+    const fetchStats = async () => {
+      if (!cancelled) {
+        setUpdating(true);
+      }
+
+      try {
+        const response = await fetch(`${API_URL}/stats`, { cache: "no-store" });
+
+        if (!response.ok) {
+          throw new Error(`HTTP error: ${response.status}`);
+        }
+
+        const data = await response.json();
+
+        if (cancelled) return;
+
+        setStats({ ...DEFAULT_STATS, ...(data.stats || {}) });
+        setRecent(data.recent || []);
+        setHistory(data.history || []);
+        setError("");
+      } catch (err) {
+        if (cancelled) return;
+
+        console.error("Dashboard API error:", err);
+        setError(`Failed to load dashboard: ${err.message}`);
+        setStats(DEFAULT_STATS);
+        setRecent([]);
+        setHistory([]);
+      } finally {
+        if (!cancelled) {
+          setUpdating(false);
+          timer = setTimeout(fetchStats, 5000);
+        }
+      }
     };
 
     fetchStats();
-    const id = setInterval(fetchStats, 5000);
-    return () => clearInterval(id);
-  }, []);
 
-  if (!stats) {
-    return (
-      <div className="dashboard loading-state">
-        <div className="loader-ring" />
-        <p>Initialising dashboard…</p>
-      </div>
-    );
-  }
+    return () => {
+      cancelled = true;
+      clearTimeout(timer);
+    };
+  }, []);
 
   return (
     <div className="dashboard">
